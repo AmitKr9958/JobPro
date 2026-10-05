@@ -521,7 +521,7 @@
       const descriptors = normalize(getFieldDescriptors(input).join(" "));
       const resumeHint = tokenPhraseMatch(descriptors, "resume") || tokenPhraseMatch(descriptors, "cv") || tokenPhraseMatch(descriptors, "curriculum vitae");
       const pdfOnly = (input.accept || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean).every(x => x === "application/pdf" || x === ".pdf");
-      const visibleContainer = !isHiddenByAncestor(input) || !!input.closest("label, [role="button"]");
+      const visibleContainer = !isHiddenByAncestor(input) || !!input.closest('label, [role="button"]');
       if ((resumeHint || pdfOnly) && visibleContainer) {
         if (await storeAndAttachResume(input, profile)) filled++;
       }

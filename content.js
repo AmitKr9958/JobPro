@@ -103,6 +103,8 @@
     const describedBy = (el.getAttribute("aria-describedby") || "").split(/\\s+/).filter(Boolean)
       .map(id => document.getElementById(id)?.textContent || "").join(" ");
     const parentText = el.parentElement?.textContent || "";
+    const type = (el.type || "").toLowerCase();
+    const includeParentContext = type === "radio" || type === "checkbox" || el.getAttribute("role") === "combobox" || el.getAttribute("aria-haspopup") === "listbox";
     return [
       el.name,
       el.id,
@@ -112,7 +114,7 @@
       getLabelText(el),
       legend,
       describedBy,
-      parentText.slice(0, 500)
+      includeParentContext ? parentText.slice(0, 500) : ""
     ].filter(Boolean);
   }
 

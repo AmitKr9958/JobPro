@@ -16,11 +16,11 @@ serve(async req=>{
  try{userId=JSON.parse(atob(jwt.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).sub}catch{}
  if(!userId)return json({error:"Invalid session"},401);
  const cacheKey=await hash(JSON.stringify({action,input}));
- const cached=await sb(url,service,`ai_cache?select=result&user_id=eq.${encodeURIComponent(userId)}&cache_key=eq.${cacheKey}&limit=1`);
+ const cached=await sb(url,service,`jobpro_ai_cache?select=result&user_id=eq.${encodeURIComponent(userId)}&cache_key=eq.${cacheKey}&limit=1`);
  const cachedRows=await cached.json().catch(()=>[]);
  if(cached.ok&&cachedRows?.[0])return json({action,result:cachedRows[0].result,cached:true});
  const since=new Date(Date.now()-86400000).toISOString();
- const countRes=await sb(url,service,`ai_cache?select=id&user_id=eq.${encodeURIComponent(userId)}&created_at=gte.${encodeURIComponent(since)}&limit=21`);
+ const countRes=await sb(url,service,`jobpro_ai_cache?select=id&user_id=eq.${encodeURIComponent(userId)}&created_at=gte.${encodeURIComponent(since)}&limit=21`);
  const countRows=await countRes.json().catch(()=>[]);
  if((countRows||[]).length>=20)return json({error:"Daily AI limit reached. Try again tomorrow."},429);
  let prompt="";
@@ -32,6 +32,6 @@ serve(async req=>{
  const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="+encodeURIComponent(gemini),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:.2,maxOutputTokens:1400}})});
  const d=await r.json().catch(()=>({})); if(!r.ok)return json({error:d?.error?.message||"Gemini request failed"},r.status);
  const result=d?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text||"").join("")||"";
- await sb(url,service,"ai_cache",{method:"POST",headers:{"Prefer":"resolution=merge-duplicates"},body:JSON.stringify({user_id:userId,cache_key:cacheKey,action,result})});
+ await sb(url,service,"jobpro_ai_cache",{method:"POST",headers:{"Prefer":"resolution=merge-duplicates"},body:JSON.stringify({user_id:userId,cache_key:cacheKey,action,result})});
  return json({action,result,cached:false});
 });

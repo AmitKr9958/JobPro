@@ -173,6 +173,19 @@
         </div>
 
         <div class="field">
+          <label>Resume PDF</label>
+          <input type="file" id="f_resumeFile" accept="application/pdf,.pdf" />
+          <small id="resumeFileName">No PDF stored</small>
+        </div>
+
+        <div class="field">
+          <label>Application answers</label>
+          <textarea id="f_answers" rows="7" placeholder='JSON, for example:
+{"workAuthorization":"Yes","sponsorship":"No","relocation":"Yes","noticePeriod":"30 days","gender":"Prefer not to say","eeo":"Decline to answer","availableStartDate":"2026-11-01"}'></textarea>
+          <small>Used for radio, checkbox, dropdown and date fields. Leave blank if you do not want an answer filled.</small>
+        </div>
+
+        <div class="field">
           <label>Cover Letter Template</label>
           <textarea id="f_coverLetterTemplate" rows="5" placeholder="Use {{name}}, {{company}}, {{role}}, {{skills}} as placeholders"></textarea>
         </div>

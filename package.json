@@ -1,0 +1,10 @@
+{
+  "name": "jobpro",
+  "private": true,
+  "scripts": {
+    "test": "node tests/test-autofill.js"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}

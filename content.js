@@ -97,13 +97,16 @@
   }
 
   function getFieldDescriptors(el) {
+    const fieldset = el.closest("fieldset");
+    const legend = fieldset && fieldset.querySelector("legend")?.textContent;
     return [
       el.name,
       el.id,
       el.placeholder,
       el.getAttribute("aria-label"),
       el.getAttribute("autocomplete"),
-      getLabelText(el)
+      getLabelText(el),
+      legend
     ].filter(Boolean);
   }
 

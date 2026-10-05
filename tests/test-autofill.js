@@ -66,8 +66,9 @@ async function load(file) {
   if (file === "react.html") {
     const email = window.document.getElementById("email");
     const proto = window.HTMLInputElement.prototype;
+    const valueDescriptor = Object.getOwnPropertyDescriptor(proto, "value");
     Object.defineProperty(email, "value", {
-      get() { return proto.value.get.call(email); },
+      get() { return valueDescriptor.get.call(email); },
       set() { throw new Error("direct assignment blocked"); },
       configurable: true
     });

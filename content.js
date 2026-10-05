@@ -669,8 +669,15 @@
 
   function armMutationObserver() {
     if (window.__jobfillProObserver) return;
-    const observer = new MutationObserver(() => {
+    const hasFormControl = node => {
+      if (!node || node.nodeType !== 1) return false;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(node.tagName)) return true;
+      if (node.matches?.('[role="combobox"]')) return true;
+      return Boolean(node.querySelector?.('input, textarea, select, [role="combobox"]'));
+    };
+    const observer = new MutationObserver(mutations => {
       if (!observerArmed || observerTimer) return;
+      if (!mutations.some(m => Array.from(m.addedNodes).some(hasFormControl))) return;
       observerTimer = setTimeout(async () => {
         observerTimer = null;
         await autofillPage();

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "JobPro — Free AI Job Assistant",
-  "version": "2.0.0",
-  "description": "Free job application autofill, AI answers, resume tailoring, match scoring and tracking.",
+  "version": "3.0.0",
+  "description": "Universal AI-assisted job application autofill for modern ATS and custom career forms. No auto-submit.",
   "permissions": [
     "storage",
     "activeTab",

@@ -8,6 +8,27 @@ let activeProfileId = "default";
 let settings = { showFloatingButton: true, fillOnlyEmpty: true, history: [] };
 let editingId = null;
 
+
+// Privacy guard for AI requests.
+function sanitizeAiText(value) {
+  return String(value || "")
+    .replace(/\b(?:\+?91[-\s]?)?[6-9]\d{9}\b/g, "[PHONE REDACTED]")
+    .replace(/\b[A-Z]{5}\d{4}[A-Z]\b/gi, "[PAN REDACTED]")
+    .replace(/\b\d{4}[ -]?\d{4}[ -]?\d{4}\b/g, "[ID REDACTED]")
+    .replace(/\b(?:salary|ctc|compensation|expected pay|expected salary)\s*[:#-]?\s*[^\n,;|]+/gi, "[SALARY REDACTED]")
+    .replace(/\b(?:address|home address|residential address)\s*[:#-]?\s*[^\n,;|]+/gi, "[ADDRESS REDACTED]")
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[EMAIL REDACTED]")
+    .slice(0, 18000);
+}
+
+async function consent() {
+  const current = await new Promise(resolve => chrome.storage.local.get(["aiConsent"], resolve));
+  if (current.aiConsent) return true;
+  const ok = confirm("JobPro AI needs to send job/resume context to the configured AI provider. Personal phone, address, IDs, salary and email are redacted first. Continue?");
+  if (ok) chrome.storage.local.set({ aiConsent: true });
+  return ok;
+}
+
 // ====================== INIT ======================
 document.addEventListener("DOMContentLoaded", async () => {
   await loadData();

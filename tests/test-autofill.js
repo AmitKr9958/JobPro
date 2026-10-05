@@ -135,7 +135,7 @@ async function load(file) {
     ["date-and-file.html", async ({window, api}) => {
       await api.autofillPage({ profile, fillOnlyEmpty: true });
       assert.strictEqual(window.document.getElementById("start").value, profile.answers.availableStartDate);
-      assert.strictEqual(window.document.getElementById("notice").value, "");
+      assert.strictEqual(window.document.getElementById("notice").value, profile.answers.noticePeriod);
     }],
     ["react.html", async ({window, api}) => {
       await api.autofillPage({ profile, fillOnlyEmpty: true });

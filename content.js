@@ -728,8 +728,30 @@
     }
   });
 
+  function armNavigationHooks() {
+    if (window.__jobfillProNavigationHooks) return;
+    window.__jobfillProNavigationHooks = true;
+    const maybeNext = event => {
+      const target = event.target?.closest?.('button, input[type="button"], input[type="submit"], [role="button"], a');
+      if (!target) return;
+      const text = normalize(target.innerText || target.value || target.getAttribute("aria-label") || "");
+      if (!/(next|continue|proceed|save and continue|review application|application next)/i.test(text)) return;
+      if (!observerArmed) return;
+      setTimeout(() => autofillPage().catch(()=>{}), 650);
+    };
+    document.addEventListener("click", maybeNext, true);
+
+    let lastUrl = location.href;
+    setInterval(() => {
+      if (location.href === lastUrl) return;
+      lastUrl = location.href;
+      if (observerArmed) setTimeout(() => autofillPage().catch(()=>{}), 500);
+    }, 700);
+  }
+
   function init() {
     armMutationObserver();
+    armNavigationHooks();
     chrome.storage.local.get(["settings"], data => {
       if ((data.settings || {}).showFloatingButton !== false) setTimeout(createFloatingButton, 800);
     });

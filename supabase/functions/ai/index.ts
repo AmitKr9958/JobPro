@@ -8,8 +8,8 @@ serve(async req=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
  if(req.method!=="POST")return json({error:"POST required"},405);
  const auth=req.headers.get("Authorization"); if(!auth)return json({error:"Authentication required"},401);
- const gemini=Deno.env.get("GEMINI_API_KEY"), url=Deno.env.get("SUPABASE_URL"), service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
- if(!gemini||!url||!service)return json({error:"AI server configuration is incomplete"},503);
+ const openrouter=Deno.env.get("OPENROUTER_API_KEY"), url=Deno.env.get("SUPABASE_URL"), service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+ if(!openrouter||!url||!service)return json({error:"AI server configuration is incomplete"},503);
  let body:any; try{body=await req.json()}catch{return json({error:"Invalid JSON"},400)}
  const action=clean(body.action,40), input=body.input||{};
  const jwt=auth.replace(/^Bearer\s+/i,""); let userId="";
@@ -29,9 +29,9 @@ serve(async req=>{
  else if(action==="cover_letter")prompt=`Write a concise professional cover letter for this job using only supplied resume facts. Do not invent information. Job: ${clean(JSON.stringify(input.job))} Resume: ${clean(JSON.stringify(input.resume))}`;
  else if(action==="match_score")prompt=`Score this candidate against this job from 0 to 100. Return JSON only with keys score, strengths, gaps, reason. Never invent facts. Job: ${clean(JSON.stringify(input.job))} Candidate: ${clean(JSON.stringify(input.resume))}`;
  else return json({error:"Unsupported action"},400);
- const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="+encodeURIComponent(gemini),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:.2,maxOutputTokens:1400}})});
- const d=await r.json().catch(()=>({})); if(!r.ok)return json({error:d?.error?.message||"Gemini request failed"},r.status);
- const result=d?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text||"").join("")||"";
+ const r=await fetch("https://openrouter.ai/api/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+openrouter,"HTTP-Referer":"https://github.com/AmitKr9958/JobPro","X-Title":"JobPro"},body:JSON.stringify({model:"openrouter/free",messages:[{role:"user",content:prompt}],temperature:.2,max_tokens:1400})});
+ const d=await r.json().catch(()=>({})); if(!r.ok)return json({error:d?.error?.message||"OpenRouter request failed"},r.status);
+ const result=d?.choices?.[0]?.message?.content||"";
  await sb(url,service,"jobpro_ai_cache",{method:"POST",headers:{"Prefer":"resolution=merge-duplicates"},body:JSON.stringify({user_id:userId,cache_key:cacheKey,action,result})});
  return json({action,result,cached:false});
 });

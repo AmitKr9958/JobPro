@@ -1,4 +1,4 @@
-// JobPro Side Panel
+// JobPro Side Panel v2.1
 
 const $ = (s) => document.querySelector(s);
 
@@ -15,6 +15,7 @@ async function load() {
   renderPreview();
   renderHistory();
   renderQuickAnswers();
+  autoExtractJD();
 }
 
 function getActive() {
@@ -32,9 +33,9 @@ function renderPreview() {
   const p = getActive();
   if (!p) return;
   $("#profilePreview").innerHTML = `
-    <div><strong>${p.fullName || "—"}</strong></div>
-    <div>${p.email || ""} ${p.phone ? "· " + p.phone : ""}</div>
-    <div>${p.currentTitle || ""} ${p.currentCompany ? " @ " + p.currentCompany : ""}</div>
+    <div><strong>${escape(p.fullName || "—")}</strong></div>
+    <div>${escape(p.email || "")} ${p.phone ? "· " + escape(p.phone) : ""}</div>
+    <div>${escape(p.currentTitle || "")} ${p.currentCompany ? " @ " + escape(p.currentCompany) : ""}</div>
   `;
 }
 
@@ -75,40 +76,19 @@ function escape(s) {
   return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
-// Match score (simple but effective keyword + skill overlap)
 function computeMatchScore(jdText, profile) {
   if (!jdText || !profile) return { score: 0, missing: [], matched: [] };
-
   const jd = jdText.toLowerCase();
-  const skills = (profile.skills || []).map(s => s.toLowerCase());
-  const keywords = [
-    ...(profile.skills || []),
-    profile.currentTitle,
-    profile.currentCompany,
-    ...(profile.workHistory || []).flatMap(w => [w.title, w.company])
-  ].filter(Boolean).map(s => s.toLowerCase());
-
+  const skills = (Array.isArray(profile.skills) ? profile.skills : (profile.skills || "").split(",")).map(s => s.trim().toLowerCase()).filter(Boolean);
   const matched = [];
   const missing = [];
-
-  // Skill matches
   for (const skill of skills) {
     if (jd.includes(skill)) matched.push(skill);
     else missing.push(skill);
   }
-
-  // Extra common tech keywords from JD
-  const common = ["python", "javascript", "react", "node", "java", "aws", "sql", "typescript", "docker", "kubernetes", "machine learning", "ai"];
-  for (const c of common) {
-    if (jd.includes(c) && !matched.includes(c) && !skills.includes(c)) {
-      // job asks for it but profile doesn't list it
-      if (!missing.includes(c)) missing.push(c);
-    }
-  }
-
   const totalRelevant = matched.length + Math.min(missing.length, 8);
-  const score = totalRelevant === 0 ? 50 : Math.round((matched.length / totalRelevant) * 100);
-  return { score: Math.min(98, Math.max(12, score)), matched, missing: missing.slice(0, 6) };
+  const score = totalRelevant === 0 ? 55 : Math.round((matched.length / totalRelevant) * 100);
+  return { score: Math.min(98, Math.max(15, score)), matched, missing: missing.slice(0, 6) };
 }
 
 function updateMatchUI(result) {
@@ -116,11 +96,25 @@ function updateMatchUI(result) {
   $("#matchFill").style.width = result.score + "%";
   let detail = "";
   if (result.matched.length) detail += `Matched: ${result.matched.slice(0, 4).join(", ")}`;
-  if (result.missing.length) detail += (detail ? " · " : "") + `Missing: ${result.missing.slice(0, 3).join(", ")}`;
-  $("#matchDetails").textContent = detail || "Paste JD and click Analyze";
+  if (result.missing.length) detail += (detail ? " · " : "") + `Gaps: ${result.missing.slice(0, 3).join(", ")}`;
+  $("#matchDetails").textContent = detail || "Paste or auto-extract JD then Analyze";
 }
 
-// Events
+async function autoExtractJD() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return;
+    const res = await chrome.tabs.sendMessage(tab.id, { action: "extractJD" });
+    if (res?.jd && res.jd.length > 200) {
+      $("#jdText").value = res.jd;
+      const result = computeMatchScore(res.jd, getActive());
+      updateMatchUI(result);
+    }
+  } catch (_) {
+    // page may not have content script yet
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   load();
 
@@ -138,75 +132,56 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       await chrome.tabs.sendMessage(tab.id, { action: "triggerAutofill" });
     } catch {
-      alert("Open a job application page first.");
+      alert("Open a normal job application page first (not chrome:// pages).");
     }
     $("#autofillBtn").innerHTML = "<span>⚡</span> Autofill Application";
   });
 
   $("#analyzeBtn").addEventListener("click", () => {
     const jd = $("#jdText").value.trim();
-    const p = getActive();
-    const result = computeMatchScore(jd, p);
+    const result = computeMatchScore(jd, getActive());
     updateMatchUI(result);
   });
 
   $("#tailorBtn").addEventListener("click", async () => {
     const jd = $("#jdText").value.trim();
-    if (!jd) {
-      alert("Paste the job description first.");
-      return;
-    }
+    if (!jd) { alert("Paste or auto-extract the job description first."); return; }
     const p = getActive();
-    if (!p?.resumeText && !p?.fullName) {
-      alert("Add your resume text or profile details first.");
-      return;
-    }
+    if (!p?.resumeText && !p?.fullName) { alert("Add your resume text in the profile first."); return; }
 
     $("#tailorBtn").textContent = "Generating...";
-    const system = "You are an expert resume writer. Rewrite the resume to be highly tailored for the job description. Keep it truthful, ATS-friendly, use strong action verbs, and highlight matching skills. Return only the tailored resume text.";
-    const prompt = `Job Description:\n${jd.slice(0, 3000)}\n\nCurrent Resume / Profile:\nName: ${p.fullName}\nTitle: ${p.currentTitle}\nSkills: ${(p.skills || []).join(", ")}\n\nResume Text:\n${(p.resumeText || "").slice(0, 4000)}\n\nProduce a tailored resume.`;
+    const system = "You are an expert resume writer. Produce an ATS-friendly tailored resume for the job. Keep facts truthful. Use strong action verbs. Return only the resume text.";
+    const prompt = `Job Description:\n${jd.slice(0, 3500)}\n\nCandidate: ${p.fullName}\nCurrent Title: ${p.currentTitle}\nSkills: ${(Array.isArray(p.skills) ? p.skills : [p.skills]).join(", ")}\n\nBase Resume:\n${(p.resumeText || "").slice(0, 4500)}\n\nWrite a tailored resume.`;
 
-    const res = await chrome.runtime.sendMessage({
-      action: "aiComplete",
-      system,
-      prompt,
-      maxTokens: 1500
-    });
-
+    const res = await chrome.runtime.sendMessage({ action: "aiComplete", system, prompt, maxTokens: 1600 });
     $("#tailorBtn").innerHTML = "<span>✨</span> AI Tailor Resume";
+
     if (res.error) {
-      alert("AI Error: " + res.error + "\n\nAdd a free Groq API key in Settings (console.groq.com)");
+      alert("AI Error: " + res.error + "\n\nAdd a free Groq key: console.groq.com → Settings in the extension.");
       return;
     }
-
-    // Show result in a simple way
-    const win = window.open("", "_blank", "width=700,height=800");
-    win.document.write(`<pre style="font-family:system-ui;padding:20px;white-space:pre-wrap">${res.text}</pre>`);
+    const w = window.open("", "_blank", "width=720,height=820");
+    w.document.write(`<pre style="font-family:system-ui;padding:24px;white-space:pre-wrap;line-height:1.5">${res.text}</pre>`);
   });
 
   $("#coverBtn").addEventListener("click", async () => {
     const jd = $("#jdText").value.trim();
     const p = getActive();
-    let company = "", role = "";
-    // Try extract from page title via content script later; for now use JD
-    const system = "Write a concise, professional cover letter (under 250 words). Be specific and enthusiastic.";
-    const prompt = `Write a cover letter for this job.\n\nCandidate: ${p.fullName}, ${p.currentTitle} at ${p.currentCompany}. Skills: ${(p.skills||[]).join(", ")}\n\nJob Description:\n${jd.slice(0, 2500)}`;
-
     $("#coverBtn").textContent = "Generating...";
-    const res = await chrome.runtime.sendMessage({ action: "aiComplete", system, prompt, maxTokens: 800 });
+    const system = "Write a concise professional cover letter (max 220 words). Specific and enthusiastic.";
+    const prompt = `Candidate: ${p.fullName}, ${p.currentTitle} at ${p.currentCompany}. Skills: ${(Array.isArray(p.skills)?p.skills:[p.skills]).join(", ")}\n\nJob:\n${jd.slice(0, 2800)}\n\nWrite the cover letter.`;
+    const res = await chrome.runtime.sendMessage({ action: "aiComplete", system, prompt, maxTokens: 700 });
     $("#coverBtn").innerHTML = "<span>📝</span> Generate Cover Letter";
-
-    if (res.error) {
-      alert("AI Error: " + res.error);
-      return;
-    }
-    const win = window.open("", "_blank", "width=600,height=700");
-    win.document.write(`<pre style="font-family:system-ui;padding:20px;white-space:pre-wrap">${res.text}</pre>`);
+    if (res.error) { alert("AI Error: " + res.error); return; }
+    const w = window.open("", "_blank", "width=620,height=700");
+    w.document.write(`<pre style="font-family:system-ui;padding:24px;white-space:pre-wrap;line-height:1.5">${res.text}</pre>`);
   });
 
   $("#settingsBtn").addEventListener("click", () => {
-    chrome.runtime.openOptionsPage?.() || alert("Open the extension popup → Settings to add your AI API key (Groq is free).");
+    alert("Open the extension popup (click the JobPro icon) → Settings to add your free Groq / OpenAI / Gemini API key.");
   });
 
-  $("#refreshBtn").addEventListener("click", load);
+  $("#refreshBtn").addEventListener("click", () => {
+    load();
+  });
 });

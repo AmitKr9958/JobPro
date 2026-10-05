@@ -1,187 +1,20 @@
-// JobPro Side Panel v2.1
-
-const $ = (s) => document.querySelector(s);
-
-let profiles = [];
-let activeProfileId = "default";
-let settings = {};
-
-async function load() {
-  const data = await chrome.storage.local.get(["profiles", "activeProfileId", "settings"]);
-  profiles = data.profiles || [];
-  activeProfileId = data.activeProfileId || "default";
-  settings = data.settings || {};
-  renderProfiles();
-  renderPreview();
-  renderHistory();
-  renderQuickAnswers();
-  autoExtractJD();
-}
-
-function getActive() {
-  return profiles.find(p => p.id === activeProfileId) || profiles[0];
-}
-
-function renderProfiles() {
-  const sel = $("#profileSelect");
-  sel.innerHTML = profiles.map(p =>
-    `<option value="${p.id}" ${p.id === activeProfileId ? "selected" : ""}>${p.name || "Unnamed"}</option>`
-  ).join("");
-}
-
-function renderPreview() {
-  const p = getActive();
-  if (!p) return;
-  $("#profilePreview").innerHTML = `
-    <div><strong>${escape(p.fullName || "—")}</strong></div>
-    <div>${escape(p.email || "")} ${p.phone ? "· " + escape(p.phone) : ""}</div>
-    <div>${escape(p.currentTitle || "")} ${p.currentCompany ? " @ " + escape(p.currentCompany) : ""}</div>
-  `;
-}
-
-function renderHistory() {
-  const list = $("#historyList");
-  const history = settings.history || [];
-  if (!history.length) {
-    list.innerHTML = `<li style="color:#94a3b8;font-style:italic">No applications yet</li>`;
-    return;
-  }
-  list.innerHTML = history.slice(0, 12).map(h => {
-    const d = new Date(h.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    const score = h.matchScore != null ? ` · ${h.matchScore}%` : "";
-    return `<li>
-      <div class="title">${escape(h.role || h.title || h.url)}</div>
-      <div class="meta">${escape(h.company || "")}${score} · ${d}</div>
-    </li>`;
-  }).join("");
-}
-
-function renderQuickAnswers() {
-  const p = getActive();
-  const box = $("#quickAnswers");
-  if (!p) return;
-  const items = [
-    ["Work Auth", p.workAuthorization],
-    ["Relocate", p.willingToRelocate],
-    ["Notice", p.noticePeriod],
-    ["Salary", p.salaryExpectation],
-    ["Years Exp", p.yearsExperience]
-  ].filter(([, v]) => v);
-  box.innerHTML = items.map(([k, v]) =>
-    `<div class="qa-item"><strong>${k}:</strong> ${escape(v)}</div>`
-  ).join("") || `<div style="color:#94a3b8">Add answers in profile editor</div>`;
-}
-
-function escape(s) {
-  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-}
-
-function computeMatchScore(jdText, profile) {
-  if (!jdText || !profile) return { score: 0, missing: [], matched: [] };
-  const jd = jdText.toLowerCase();
-  const skills = (Array.isArray(profile.skills) ? profile.skills : (profile.skills || "").split(",")).map(s => s.trim().toLowerCase()).filter(Boolean);
-  const matched = [];
-  const missing = [];
-  for (const skill of skills) {
-    if (jd.includes(skill)) matched.push(skill);
-    else missing.push(skill);
-  }
-  const totalRelevant = matched.length + Math.min(missing.length, 8);
-  const score = totalRelevant === 0 ? 55 : Math.round((matched.length / totalRelevant) * 100);
-  return { score: Math.min(98, Math.max(15, score)), matched, missing: missing.slice(0, 6) };
-}
-
-function updateMatchUI(result) {
-  $("#matchScore").textContent = result.score + "%";
-  $("#matchFill").style.width = result.score + "%";
-  let detail = "";
-  if (result.matched.length) detail += `Matched: ${result.matched.slice(0, 4).join(", ")}`;
-  if (result.missing.length) detail += (detail ? " · " : "") + `Gaps: ${result.missing.slice(0, 3).join(", ")}`;
-  $("#matchDetails").textContent = detail || "Paste or auto-extract JD then Analyze";
-}
-
-async function autoExtractJD() {
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id) return;
-    const res = await chrome.tabs.sendMessage(tab.id, { action: "extractJD" });
-    if (res?.jd && res.jd.length > 200) {
-      $("#jdText").value = res.jd;
-      const result = computeMatchScore(res.jd, getActive());
-      updateMatchUI(result);
-    }
-  } catch (_) {
-    // page may not have content script yet
-  }
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  load();
-
-  $("#profileSelect").addEventListener("change", (e) => {
-    activeProfileId = e.target.value;
-    chrome.storage.local.set({ activeProfileId });
-    renderPreview();
-    renderQuickAnswers();
-  });
-
-  $("#autofillBtn").addEventListener("click", async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id) return;
-    $("#autofillBtn").textContent = "Filling...";
-    try {
-      await chrome.tabs.sendMessage(tab.id, { action: "triggerAutofill" });
-    } catch {
-      alert("Open a normal job application page first (not chrome:// pages).");
-    }
-    $("#autofillBtn").innerHTML = "<span>⚡</span> Autofill Application";
-  });
-
-  $("#analyzeBtn").addEventListener("click", () => {
-    const jd = $("#jdText").value.trim();
-    const result = computeMatchScore(jd, getActive());
-    updateMatchUI(result);
-  });
-
-  $("#tailorBtn").addEventListener("click", async () => {
-    const jd = $("#jdText").value.trim();
-    if (!jd) { alert("Paste or auto-extract the job description first."); return; }
-    const p = getActive();
-    if (!p?.resumeText && !p?.fullName) { alert("Add your resume text in the profile first."); return; }
-
-    $("#tailorBtn").textContent = "Generating...";
-    const system = "You are an expert resume writer. Produce an ATS-friendly tailored resume for the job. Keep facts truthful. Use strong action verbs. Return only the resume text.";
-    const prompt = `Job Description:\n${jd.slice(0, 3500)}\n\nCandidate: ${p.fullName}\nCurrent Title: ${p.currentTitle}\nSkills: ${(Array.isArray(p.skills) ? p.skills : [p.skills]).join(", ")}\n\nBase Resume:\n${(p.resumeText || "").slice(0, 4500)}\n\nWrite a tailored resume.`;
-
-    const res = await chrome.runtime.sendMessage({ action: "aiComplete", system, prompt, maxTokens: 1600 });
-    $("#tailorBtn").innerHTML = "<span>✨</span> AI Tailor Resume";
-
-    if (res.error) {
-      alert("AI Error: " + res.error + "\n\nAdd a free Groq key: console.groq.com → Settings in the extension.");
-      return;
-    }
-    const w = window.open("", "_blank", "width=720,height=820");
-    w.document.write(`<pre style="font-family:system-ui;padding:24px;white-space:pre-wrap;line-height:1.5">${res.text}</pre>`);
-  });
-
-  $("#coverBtn").addEventListener("click", async () => {
-    const jd = $("#jdText").value.trim();
-    const p = getActive();
-    $("#coverBtn").textContent = "Generating...";
-    const system = "Write a concise professional cover letter (max 220 words). Specific and enthusiastic.";
-    const prompt = `Candidate: ${p.fullName}, ${p.currentTitle} at ${p.currentCompany}. Skills: ${(Array.isArray(p.skills)?p.skills:[p.skills]).join(", ")}\n\nJob:\n${jd.slice(0, 2800)}\n\nWrite the cover letter.`;
-    const res = await chrome.runtime.sendMessage({ action: "aiComplete", system, prompt, maxTokens: 700 });
-    $("#coverBtn").innerHTML = "<span>📝</span> Generate Cover Letter";
-    if (res.error) { alert("AI Error: " + res.error); return; }
-    const w = window.open("", "_blank", "width=620,height=700");
-    w.document.write(`<pre style="font-family:system-ui;padding:24px;white-space:pre-wrap;line-height:1.5">${res.text}</pre>`);
-  });
-
-  $("#settingsBtn").addEventListener("click", () => {
-    alert("Open the extension popup (click the JobPro icon) → Settings to add your free Groq / OpenAI / Gemini API key.");
-  });
-
-  $("#refreshBtn").addEventListener("click", () => {
-    load();
-  });
-});
+const $=s=>document.querySelector(s);
+let profiles=[],activeProfileId="default",settings={};
+const get=k=>new Promise(r=>chrome.storage.local.get(k,r));
+const set=v=>new Promise(r=>chrome.storage.local.set(v,r));
+function active(){return profiles.find(p=>p.id===activeProfileId)||profiles[0]}
+function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function sanitize(s){return String(s||"").replace(/\b(?:\+?91[-\s]?)?[6-9]\d{9}\b/g,"[PHONE REDACTED]").replace(/\b[A-Z]{5}\d{4}[A-Z]\b/gi,"[PAN REDACTED]").replace(/\b\d{4}[ -]?\d{4}[ -]?\d{4}\b/g,"[ID REDACTED]").replace(/\b(?:salary|ctc|compensation|expected pay|expected salary)\s*[:#-]?\s*[^\n,;|]+/gi,"[SALARY REDACTED]").replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,"[EMAIL REDACTED]").slice(0,18000)}
+async function load(){const d=await get(["profiles","activeProfileId","settings"]);profiles=d.profiles||[];activeProfileId=d.activeProfileId||profiles[0]?.id||"default";settings=d.settings||{};renderProfiles();renderPreview();renderHistory();renderQuickAnswers();await autoExtractJD()}
+function renderProfiles(){const s=$("#profileSelect");s.innerHTML=profiles.map(p=>`<option value="${p.id}" ${p.id===activeProfileId?"selected":""}>${esc(p.name||"Unnamed")}</option>`).join("")}
+function renderPreview(){const p=active();if(!p)return;$("#profilePreview").innerHTML=`<div><strong>${esc(p.fullName||"—")}</strong></div><div>${esc(p.email||"")}</div><div>${esc(p.currentTitle||"")} ${p.currentCompany?" @ "+esc(p.currentCompany):""}</div>`}
+function renderHistory(){const h=settings.history||[];$("#historyList").innerHTML=h.length?h.slice(0,12).map(x=>`<li><div class="title">${esc(x.role||x.title||x.url)}</div><div class="meta">${esc(x.company||"")} · ${new Date(x.timestamp).toLocaleDateString()}</div></li>`).join(""):'<li style="color:#94a3b8">No applications yet</li>'}
+function renderQuickAnswers(){const p=active(),a=p?.answers||{};const keys=[["Work Auth",a.workAuthorization||p?.workAuthorization],["Relocate",a.willingToRelocate||p?.willingToRelocate],["Notice",a.noticePeriod||p?.noticePeriod],["Years Exp",p?.yearsExperience]];$("#quickAnswers").innerHTML=keys.filter(x=>x[1]).map(x=>`<div class="qa-item"><strong>${esc(x[0])}:</strong> ${esc(x[1])}</div>`).join("")||'<div style="color:#94a3b8">Add answers in profile</div>'}
+async function pageJob(){try{const[t]=await chrome.tabs.query({active:true,currentWindow:true});return await chrome.tabs.sendMessage(t.id,{action:"getJobInfo"})}catch{return{}}}
+async function pageJD(){try{const[t]=await chrome.tabs.query({active:true,currentWindow:true});return await chrome.tabs.sendMessage(t.id,{action:"extractJD"})}catch{return{jd:""}}}
+async function autoExtractJD(){const r=await pageJD();if(r.jd&&r.jd.length>200){$("#jdText").value=r.jd;await analyze(r.jd)}}
+async function analyze(jd){const p=active();if(!jd||!p)return;try{if(await consent()){const job=await pageJob();const r=await sbAi("match_score",{job:{...job,description:sanitize(jd)},resume:{resume:sanitize(p.resumeText||""),skills:sanitize(p.skills||""),education:sanitize(p.education||""),title:p.currentTitle||"",yearsExperience:p.yearsExperience||""}});let x={score:0,strengths:[],gaps:[],reason:r.result||""};try{x=JSON.parse(r.result)}catch{}$("#matchScore").textContent=(x.score??0)+"%";$("#matchFill").style.width=(x.score??0)+"%";$("#matchDetails").textContent=x.reason||[...(x.strengths||[]),...(x.gaps||[])].slice(0,4).join(" · ");}else localScore(jd)}catch(e){localScore(jd);$("#matchDetails").textContent="AI unavailable; local keyword score shown."}}
+function localScore(jd){const p=active(),skills=String(p?.skills||"").split(/[,;|]/).map(x=>x.trim().toLowerCase()).filter(Boolean),matched=skills.filter(x=>jd.toLowerCase().includes(x)),score=skills.length?Math.round(matched.length/skills.length*100):55;$("#matchScore").textContent=score+"%";$("#matchFill").style.width=score+"%";$("#matchDetails").textContent=matched.length?"Matched: "+matched.slice(0,5).join(", "):"No strong skill matches found."}
+async function consent(){const d=await get(["aiConsent"]);if(d.aiConsent)return true;const ok=confirm("Allow JobPro AI to process your resume and job description? Phone, address, IDs and salary are redacted before the request.");if(ok)await set({aiConsent:true});return ok}
+async function ai(action){const jd=$("#jdText").value.trim();if(!jd)return alert("No job description found.");if(!(await consent()))return;const p=active(),job=await pageJob();try{const r=await sbAi(action,{job:{...job,description:sanitize(jd)},resume:{resume:sanitize(p.resumeText||""),skills:sanitize(p.skills||""),education:sanitize(p.education||""),title:p.currentTitle||"",yearsExperience:p.yearsExperience||""}});const w=window.open("","_blank","width=760,height=820");w.document.write("<pre style='font-family:system-ui;padding:24px;white-space:pre-wrap;line-height:1.5'>"+esc(r.result||"")+"</pre>")}catch(e){alert(e.message)}}
+document.addEventListener("DOMContentLoaded",()=>{load();$("#profileSelect").onchange=async e=>{activeProfileId=e.target.value;await set({activeProfileId});renderPreview();renderQuickAnswers()};$("#autofillBtn").onclick=async()=>{const[t]=await chrome.tabs.query({active:true,currentWindow:true});try{await chrome.tabs.sendMessage(t.id,{action:"triggerAutofill"})}catch{alert("Open a normal application page first.")}};$("#analyzeBtn").onclick=()=>analyze($("#jdText").value.trim());$("#tailorBtn").onclick=()=>ai("tailor_resume");$("#coverBtn").onclick=()=>ai("cover_letter");$("#refreshBtn").onclick=load;$("#settingsBtn").onclick=()=>chrome.runtime.openOptionsPage?.()});

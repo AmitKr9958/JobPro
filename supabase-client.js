@@ -1,5 +1,5 @@
 // Minimal Supabase REST client for MV3.
-const JOBPRO_SUPABASE={url:"https://kbsksavehfedjskpengb.supabase.co",anonKey:""};
+const JOBPRO_SUPABASE={url:"https://kbsksavehfedjskpengb.supabase.co",anonKey:"sb_publishable_5nLLO3E5hD9x9Yv6yF8WuA_Hwia_8Qc"};
 const storageGet=keys=>new Promise(r=>chrome.storage.local.get(keys,r));
 const storageSet=value=>new Promise(r=>chrome.storage.local.set(value,r));
 async function getSupabaseConfig(){const s=await storageGet(["supabaseUrl","supabaseAnonKey","authSession"]);return{url:s.supabaseUrl||JOBPRO_SUPABASE.url,anonKey:s.supabaseAnonKey||JOBPRO_SUPABASE.anonKey,session:s.authSession||null}}

@@ -5,25 +5,25 @@
   "use strict";
 
   const FIELD_MAP = {
-    fullName: ["full name", "fullname", "your name", "applicant name", "candidate name", "legal name", "display name", "name"],
-    firstName: ["first name", "firstname", "fname", "given name", "forename"],
-    lastName: ["last name", "lastname", "lname", "surname", "family name"],
+    fullName: ["full name", "fullname", "your name", "applicant name", "candidate name", "legal name", "display name", "name", "applicant", "candidate"],
+    firstName: ["first name", "firstname", "fname", "given name", "forename", "given-name"],
+    lastName: ["last name", "lastname", "lname", "surname", "family name", "family-name"],
     email: ["email", "e-mail", "email address", "emailaddress", "mail", "user email", "contact email"],
-    phone: ["phone", "telephone", "mobile", "cell phone", "phone number", "tel", "contact number", "mobile phone"],
+    phone: ["phone", "telephone", "mobile", "cell phone", "phone number", "tel", "contact number", "mobile phone", "mobile-number"],
     linkedin: ["linkedin", "linkedin url", "linkedin profile", "linked in"],
     github: ["github", "github url", "github profile"],
     portfolio: ["portfolio", "personal website", "personal site", "website", "homepage", "portfolio url"],
-    currentTitle: ["current title", "job title", "jobtitle", "current position", "position", "role", "designation"],
-    currentCompany: ["current company", "current employer", "company", "employer", "organization", "organisation", "workplace"],
+    currentTitle: ["current title", "job title", "jobtitle", "current position", "position", "role", "designation", "organization-title"],
+    currentCompany: ["current company", "current employer", "company", "employer", "organization", "organisation", "workplace", "organization-name"],
     yearsExperience: ["years experience", "years of experience", "total experience", "work experience", "experience", "yoe"],
     education: ["education", "degree", "university", "college", "school", "highest degree", "qualification"],
     skills: ["skills", "technical skills", "key skills", "competencies"],
     salaryExpectation: ["salary", "expected salary", "salary expectation", "compensation", "desired salary", "ctc", "expected ctc"],
-    address: ["address", "street", "street address", "address line 1", "mailing address", "home address"],
-    city: ["city", "town", "locality"],
-    state: ["state", "province", "region"],
-    zip: ["zip", "zip code", "postal", "postcode", "postal code"],
-    country: ["country", "nation"],
+    address: ["address", "street", "street address", "address line 1", "mailing address", "home address", "street-address", "address1", "address-line-1"],
+    city: ["city", "town", "locality", "address-level2"],
+    state: ["state", "province", "region", "address-level1"],
+    zip: ["zip", "zip code", "postal", "postcode", "postal code", "postal-code"],
+    country: ["country", "nation", "country-name"],
     coverLetter: ["cover letter", "coverletter", "additional information", "comments", "motivation", "why do you want", "message"],
     gender: ["gender", "sex"],
     eeo: ["eeo", "equal employment opportunity", "self identification"],
@@ -99,14 +99,20 @@
   function getFieldDescriptors(el) {
     const fieldset = el.closest("fieldset");
     const legend = fieldset && fieldset.querySelector("legend")?.textContent;
+    const autocomplete = el.getAttribute("autocomplete") || "";
+    const describedBy = (el.getAttribute("aria-describedby") || "").split(/\\s+/).filter(Boolean)
+      .map(id => document.getElementById(id)?.textContent || "").join(" ");
+    const parentText = el.parentElement?.textContent || "";
     return [
       el.name,
       el.id,
       el.placeholder,
       el.getAttribute("aria-label"),
-      el.getAttribute("autocomplete"),
+      autocomplete,
       getLabelText(el),
-      legend
+      legend,
+      describedBy,
+      parentText.slice(0, 500)
     ].filter(Boolean);
   }
 
@@ -135,8 +141,19 @@
       }
     }
     const type = (el.type || "").toLowerCase();
-    if (fieldKey === "email" && type === "email") score += 8;
-    if (fieldKey === "phone" && type === "tel") score += 8;
+    const autocomplete = normalize(el.getAttribute("autocomplete") || "");
+    if (fieldKey === "email" && (type === "email" || autocomplete === "email")) score += 10;
+    if (fieldKey === "phone" && (type === "tel" || autocomplete === "tel" || autocomplete === "tel-national")) score += 10;
+    if (fieldKey === "firstName" && (autocomplete === "given name" || autocomplete === "given-name")) score += 10;
+    if (fieldKey === "lastName" && (autocomplete === "family name" || autocomplete === "family-name")) score += 10;
+    if (fieldKey === "fullName" && autocomplete === "name") score += 10;
+    if (fieldKey === "address" && autocomplete.includes("street")) score += 10;
+    if (fieldKey === "city" && autocomplete.includes("address-level2")) score += 10;
+    if (fieldKey === "state" && autocomplete.includes("address-level1")) score += 10;
+    if (fieldKey === "zip" && autocomplete.includes("postal-code")) score += 10;
+    if (fieldKey === "country" && autocomplete.includes("country")) score += 10;
+    if (fieldKey === "currentCompany" && autocomplete === "organization") score += 9;
+    if (fieldKey === "currentTitle" && autocomplete === "organization-title") score += 9;
     if (URL_KEYS.has(fieldKey) && type === "url" && !hint) score += 2;
     return score;
   }
@@ -277,7 +294,11 @@
     const tag = el.tagName.toLowerCase();
     if (tag === "select") {
       const target = normalize(value);
-      const option = Array.from(el.options).find(o => normalize(o.text) === target || normalize(o.value) === target || tokenPhraseMatch(o.text, value));
+      const option = Array.from(el.options).find(o => {
+        const text = normalize(o.text), optValue = normalize(o.value);
+        return text === target || optValue === target || tokenPhraseMatch(text, value) ||
+          (target.length > 2 && (text.includes(target) || target.includes(text)));
+      });
       if (!option) return false;
       const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
       if (setter) setter.call(el, option.value); else el.value = option.value;

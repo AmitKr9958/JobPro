@@ -4,7 +4,7 @@ name: Phase 1 tests
 
 on:
   push:
-    branches: [phase-1-autofill, main]
+    branches: [phase-1-autofill, phase-2-backend, main]
   pull_request:
 
 jobs:
@@ -17,3 +17,7 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm test
+      - run: node --check popup.js
+      - run: node --check background.js
+      - run: node --check supabase-client.js
+      - run: node --check content.js

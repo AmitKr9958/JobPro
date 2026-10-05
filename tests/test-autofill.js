@@ -67,7 +67,7 @@ async function load(file) {
     const email = window.document.getElementById("email");
     const proto = window.HTMLInputElement.prototype;
     Object.defineProperty(email, "value", {
-      get() { return proto.value.get.call(this); },
+      get() { return proto.value.get.call(email); },
       set() { throw new Error("direct assignment blocked"); },
       configurable: true
     });

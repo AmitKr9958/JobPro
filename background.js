@@ -26,6 +26,8 @@ chrome.runtime.onInstalled.addListener((details) => {
       coverLetterTemplate: "Dear Hiring Manager,\n\nI am excited to apply for the {{role}} position at {{company}}. With my background in {{skills}}, I am confident I can contribute effectively to your team.\n\nLooking forward to the opportunity to discuss how my experience aligns with your needs.\n\nBest regards,\n{{name}}",
       resumeText: "",
       resumeFileName: "",
+      resumeFileBase64: "",
+      answers: {},
       // resume PDF is stored separately as base64 if needed
     };
 
@@ -65,7 +67,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // async
   }
 
-  if (message.action === "logApplication") {
+  if (message.action === "logApplication" && Number(message.filledCount) > 0) {
     chrome.storage.local.get(["settings"], (data) => {
       const settings = data.settings || { history: [] };
       const entry = {

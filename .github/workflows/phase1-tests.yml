@@ -21,3 +21,4 @@ jobs:
       - run: node --check background.js
       - run: node --check supabase-client.js
       - run: node --check content.js
+      - run: node --check sidepanel.js

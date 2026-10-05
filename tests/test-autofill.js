@@ -117,6 +117,21 @@ async function load(file) {
       assert.strictEqual(window.document.getElementById("state").value, "Delhi");
       assert.strictEqual(window.document.getElementById("statement").value, "");
     }],
+    ["autocomplete.html", async ({window, api}) => {
+      await api.autofillPage({ profile, fillOnlyEmpty: true });
+      assert.strictEqual(window.document.getElementById("given").value, "Amit");
+      assert.strictEqual(window.document.getElementById("family").value, "Kumar");
+      assert.strictEqual(window.document.getElementById("mail").value, profile.email);
+      assert.strictEqual(window.document.getElementById("tel").value, profile.phone);
+      assert.strictEqual(window.document.getElementById("addr").value, "");
+      assert.strictEqual(window.document.getElementById("town").value, "Delhi");
+      assert.strictEqual(window.document.getElementById("region").value, "Delhi");
+      assert.strictEqual(window.document.getElementById("postal").value, "");
+      assert.strictEqual(window.document.getElementById("nation").value, "");
+      assert.strictEqual(window.document.getElementById("org").value, profile.currentCompany);
+      assert.strictEqual(window.document.getElementById("title").value, profile.currentTitle);
+      assert.strictEqual(window.document.getElementById("auth").value, "Yes");
+    }],
     ["react.html", async ({window, api}) => {
       await api.autofillPage({ profile, fillOnlyEmpty: true });
       assert.strictEqual(window.document.getElementById("name").value, profile.fullName);

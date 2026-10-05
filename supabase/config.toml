@@ -1,0 +1,7 @@
+project_id = "kbsksavehfedjskpengb"
+
+[functions.ai]
+verify_jwt = true
+
+[functions.fetch_jobs]
+verify_jwt = true

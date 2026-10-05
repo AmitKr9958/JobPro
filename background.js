@@ -6,7 +6,7 @@ chrome.runtime.onInstalled.addListener(details => {
   }
 });
 chrome.commands?.onCommand.addListener(command => {
-  if (command==="autofill") chrome.tabs.query({active:true,currentWindow:true},tabs=>tabs[0]&&chrome.tabs.sendMessage(tabs[0].id,{action:"triggerAutofill"}).catch(()=>{}));
+  if (command==="autofill") chrome.tabs.query({active:true,currentWindow:true},tabs=>tabs[0]&&chrome.tabs.sendMessage(tabs[0].id,{action:"triggerAutofill"}).catch(()=>{}));\n  if (command==="open-sidepanel" && chrome.sidePanel?.open) chrome.tabs.query({active:true,currentWindow:true},tabs=>tabs[0]?.id&&chrome.sidePanel.open({tabId:tabs[0].id}).catch(()=>{}));
 });
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
   if(message.action==="getActiveProfile"){

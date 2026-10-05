@@ -58,7 +58,9 @@ function createEmptyProfile(name = "New Profile") {
     country: "",
     coverLetterTemplate: "Dear Hiring Manager,\n\nI am excited to apply for the {{role}} position at {{company}}. With my background in {{skills}}, I am confident I can contribute effectively to your team.\n\nLooking forward to the opportunity to discuss how my experience aligns with your needs.\n\nBest regards,\n{{name}}",
     resumeText: "",
-    resumeFileName: ""
+    resumeFileName: "",
+    resumeFileBase64: "",
+    answers: {}
   };
 }
 
@@ -204,9 +206,14 @@ function bindEvents() {
   $("#cancelEditBtn").addEventListener("click", () => showView("mainView"));
 
   // Save profile
-  $("#profileForm").addEventListener("submit", (e) => {
+  $("#profileForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const data = readForm();
+    const file = await readResumeFile($("#f_resumeFile").files[0]);
+    if (file) {
+      data.resumeFileName = file.name;
+      data.resumeFileBase64 = file.data;
+    }
     if (editingId) {
       const idx = profiles.findIndex((p) => p.id === editingId);
       if (idx >= 0) profiles[idx] = { ...profiles[idx], ...data, id: editingId };
@@ -314,6 +321,34 @@ function fillForm(p) {
   $("#f_country").value = p.country || "";
   $("#f_resumeText").value = p.resumeText || "";
   $("#f_coverLetterTemplate").value = p.coverLetterTemplate || "";
+  $("#f_answers").value = JSON.stringify(p.answers || {}, null, 2);
+  $("#resumeFileName").textContent = p.resumeFileName ? p.resumeFileName : "No PDF stored";
+}
+
+function parseAnswers(text) {
+  if (!text.trim()) return {};
+  try {
+    const value = JSON.parse(text);
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error();
+    return value;
+  } catch {
+    alert("Application answers must be valid JSON.");
+    return {};
+  }
+}
+
+async function readResumeFile(file) {
+  if (!file) return null;
+  if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+    alert("Please select a PDF resume.");
+    return null;
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve({ name: file.name, data: reader.result });
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 function readForm() {
@@ -339,6 +374,8 @@ function readForm() {
     country: $("#f_country").value.trim(),
     resumeText: $("#f_resumeText").value.trim(),
     coverLetterTemplate: $("#f_coverLetterTemplate").value.trim(),
-    resumeFileName: ""
+    resumeFileName: editingId ? (profiles.find(p => p.id === editingId)?.resumeFileName || "") : "",
+    resumeFileBase64: editingId ? (profiles.find(p => p.id === editingId)?.resumeFileBase64 || "") : "",
+    answers: parseAnswers($("#f_answers").value)
   };
 }

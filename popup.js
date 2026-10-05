@@ -245,16 +245,12 @@ function bindEvents() {
   $("#settingsBtn").addEventListener("click", () => {
     $("#settingFab").checked = settings.showFloatingButton !== false;
     $("#settingEmptyOnly").checked = settings.fillOnlyEmpty !== false;
-    $("#settingAiProvider").value = settings.aiProvider || "groq";
-    $("#settingAiKey").value = settings.aiApiKey || "";
     renderHistory();
     showView("settingsView");
   });
 
   $("#settingsBackBtn").addEventListener("click", () => {
     // persist AI settings on leave
-    settings.aiProvider = $("#settingAiProvider").value;
-    settings.aiApiKey = $("#settingAiKey").value.trim();
     saveSettings();
     showView("mainView");
   });
@@ -277,15 +273,7 @@ function bindEvents() {
     saveSettings();
   });
 
-  $("#settingAiProvider").addEventListener("change", (e) => {
-    settings.aiProvider = e.target.value;
-    saveSettings();
-  });
-
-  $("#settingAiKey").addEventListener("change", (e) => {
-    settings.aiApiKey = e.target.value.trim();
-    saveSettings();
-  });
+  // AI credentials are intentionally not stored in the extension. JobPro AI uses the server-side OpenRouter configuration.
 
   // Export
   $("#exportBtn").addEventListener("click", () => {
@@ -375,7 +363,7 @@ function fillForm(p) {
   $("#f_coverLetterTemplate").value = p.coverLetterTemplate || "";
   $("#resumeFileName").textContent = p.resumeFileName ? "Attached: " + p.resumeFileName : "";
   // keep existing base64 in memory via data attribute
-  $("#f_resumeFile").dataset.existingBase64 = p.resumeBase64 || "";
+  $("#f_resumeFile").dataset.existingBase64 = p.resumeFileBase64 || p.resumeBase64 || "";
   $("#f_resumeFile").dataset.existingName = p.resumeFileName || "";
 }
 
@@ -409,6 +397,12 @@ function readForm() {
     resumeText: $("#f_resumeText").value.trim(),
     coverLetterTemplate: $("#f_coverLetterTemplate").value.trim(),
     resumeFileName: $("#f_resumeFile").dataset.existingName || "",
-    resumeBase64: $("#f_resumeFile").dataset.existingBase64 || ""
+    resumeFileBase64: $("#f_resumeFile").dataset.existingBase64 || "",
+    answers: {
+      workAuthorization: $("#f_workAuthorization").value.trim(),
+      relocation: $("#f_willingToRelocate").value.trim(),
+      willingToRelocate: $("#f_willingToRelocate").value.trim(),
+      noticePeriod: $("#f_noticePeriod").value.trim()
+    }
   };
 }

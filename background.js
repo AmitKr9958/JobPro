@@ -62,17 +62,11 @@ async function getAuthSession() {
 
 async function answerQuestionsWithAI(message, sendResponse) {
   const session = await getAuthSession();
-  if (!session?.access_token) {
-    sendResponse({ answers: [], requiresLogin: true });
-    return;
-  }
+  if (!session?.access_token) { sendResponse({ answers: [], requiresLogin: true }); return; }
   const settings = await new Promise(resolve => chrome.storage.local.get(["settings"], data => resolve(data.settings || {})));
-  if (settings.aiConsent !== true) {
-    sendResponse({ answers: [], requiresConsent: true });
-    return;
-  }
+  if (settings.aiConsent !== true) { sendResponse({ answers: [], requiresConsent: true }); return; }
 
-  const questions = Array.isArray(message.questions) ? message.questions.slice(0, 8).map(q => ({
+  const questions = Array.isArray(message.questions) ? message.questions.slice(0, 4).map(q => ({
     fieldKey: sanitizeAiText(q?.fieldKey, 80),
     question: sanitizeAiText(q?.question, 1200)
   })) : [];
@@ -89,48 +83,37 @@ async function answerQuestionsWithAI(message, sendResponse) {
     }
   };
 
+  const answers = [];
   try {
-    const response = await fetch("https://kbsksavehfedjskpengb.supabase.co/functions/v1/ai", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": "sb_publishable_5nLLO3E5hD9x9Yv6yF8WuA_Hwia_8Qc",
-        "Authorization": "Bearer " + session.access_token
-      },
-      body: JSON.stringify({
-        action: "answer_question",
-        input: {
-          question: questions.map((q, i) => (i + 1) + ". [" + q.fieldKey + "] " + q.question).join("\n"),
-          context
-        }
-      })
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      sendResponse({ answers: [], error: data?.error || "AI request failed" });
-      return;
-    }
-    const raw = String(data?.result || "");
-    const answers = [];
     for (const q of questions) {
-      const marker = "[" + q.fieldKey + "]";
-      const start = raw.indexOf(marker);
-      if (start >= 0) {
-        const next = raw.indexOf("\n", start + marker.length);
-        answers.push({ fieldKey: q.fieldKey, question: q.question, answer: raw.slice(start + marker.length, next < 0 ? raw.length : next).replace(/^[:\-\s]+/, "").trim().slice(0, 1000) });
-      }
+      const response = await fetch("https://kbsksavehfedjskpengb.supabase.co/functions/v1/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": "sb_publishable_5nLLO3E5hD9x9Yv6yF8WuA_Hwia_8Qc",
+          "Authorization": "Bearer " + session.access_token
+        },
+        body: JSON.stringify({ action: "answer_question", input: {
+          question: q.question,
+          context
+        }})
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) continue;
+      const answer = String(data?.result || "").trim().slice(0, 1000);
+      if (answer) answers.push({ fieldKey: q.fieldKey, question: q.question, answer });
     }
+
     await new Promise(resolve => chrome.storage.local.get(["savedAnswers"], data => {
       const existing = data.savedAnswers || [];
       for (const a of answers) {
-        if (!a.answer) continue;
         const questionHash = btoa(unescape(encodeURIComponent(a.question))).replace(/[^a-zA-Z0-9]/g, "").slice(0, 80);
         existing.unshift({ question_hash: questionHash, question: a.question, answer: a.answer, updated_at: new Date().toISOString() });
       }
       const dedup = [];
       const seen = new Set();
       for (const a of existing) {
-        if (seen.has(a.question_hash)) continue;
+        if (!a.question_hash || seen.has(a.question_hash)) continue;
         seen.add(a.question_hash);
         dedup.push(a);
       }
@@ -138,7 +121,7 @@ async function answerQuestionsWithAI(message, sendResponse) {
     }));
     sendResponse({ answers });
   } catch (error) {
-    sendResponse({ answers: [], error: error?.message || "AI request failed" });
+    sendResponse({ answers, error: error?.message || "AI request failed" });
   }
 }
 

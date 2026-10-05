@@ -696,6 +696,11 @@
       sendResponse(readJobInfo());
       return true;
     }
+    if (message.action === "extractJD") {
+      const text = document.body?.innerText || "";
+      sendResponse({ jd: text.replace(/\s+/g, " ").trim().slice(0, 12000) });
+      return true;
+    }
     if (message.action === "toggleFab") {
       if (message.show) createFloatingButton();
       else removeFloatingButton();

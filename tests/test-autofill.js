@@ -132,6 +132,11 @@ async function load(file) {
       assert.strictEqual(window.document.getElementById("title").value, profile.currentTitle);
       assert.strictEqual(window.document.getElementById("auth").value, "Yes");
     }],
+    ["date-and-file.html", async ({window, api}) => {
+      await api.autofillPage({ profile, fillOnlyEmpty: true });
+      assert.strictEqual(window.document.getElementById("start").value, profile.answers.availableStartDate);
+      assert.strictEqual(window.document.getElementById("notice").value, "");
+    }],
     ["react.html", async ({window, api}) => {
       await api.autofillPage({ profile, fillOnlyEmpty: true });
       assert.strictEqual(window.document.getElementById("name").value, profile.fullName);

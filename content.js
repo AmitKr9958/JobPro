@@ -25,6 +25,8 @@
     zip: ["zip", "zip code", "postal", "postcode", "postal code"],
     country: ["country", "nation"],
     coverLetter: ["cover letter", "coverletter", "additional information", "comments", "motivation", "why do you want", "message"],
+    gender: ["gender", "sex"],
+    eeo: ["eeo", "equal employment opportunity", "self identification"],
     resumeText: ["resume", "cv", "summary", "about", "bio", "profile", "description", "experience description"],
     workAuthorization: ["work authorization", "authorized to work", "legally authorized", "right to work"],
     sponsorship: ["sponsorship", "require sponsorship", "visa sponsorship", "need sponsorship"],
@@ -74,7 +76,7 @@
 
   function getLabelText(el) {
     if (el.id) {
-      const label = document.querySelector('label[for="' + CSS.escape(el.id) + '"]');
+      const label = Array.from(document.querySelectorAll("label")).find(x => x.htmlFor === el.id);
       if (label) return label.textContent || "";
     }
     const parent = el.closest("label");
@@ -116,6 +118,10 @@
   function scoreField(el, keywords, fieldKey) {
     const hint = semanticHint(el);
     if (URL_KEYS.has(fieldKey) && hint && hint !== fieldKey) return 0;
+    if (fieldKey === "fullName") {
+      const descriptorText = normalize(getFieldDescriptors(el).join(" "));
+      if (["first name", "last name", "given name", "family name", "surname", "confirm name"].some(x => tokenPhraseMatch(descriptorText, x))) return 0;
+    }
     const descriptors = getFieldDescriptors(el);
     let score = 0;
     for (const keyword of keywords) {

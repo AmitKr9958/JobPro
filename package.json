@@ -2,7 +2,8 @@
   "name": "jobpro",
   "private": true,
   "scripts": {
-    "test": "node tests/test-autofill.js"
+    "test": "node tests/test-autofill.js && npm run test:privacy",
+    "test:privacy": "node tests/test-privacy.js"
   },
   "devDependencies": {
     "jsdom": "^26.1.0"

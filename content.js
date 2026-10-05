@@ -1,4 +1,4 @@
-// JobFill Pro - Phase 1 autofill engine
+// JobPro - cross-page autofill engine
 // Plain JavaScript. No backend or AI calls in this phase.
 
 (function () {
@@ -690,6 +690,10 @@
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "triggerAutofill") {
       autofillPage().then(result => sendResponse(result));
+      return true;
+    }
+    if (message.action === "getJobInfo") {
+      sendResponse(readJobInfo());
       return true;
     }
     if (message.action === "toggleFab") {

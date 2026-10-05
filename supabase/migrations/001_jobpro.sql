@@ -93,7 +93,7 @@ alter table public.jobpro_profiles add column if not exists updated_at timestamp
 alter table public.jobpro_resumes add column if not exists updated_at timestamptz not null default now();
 
 create or replace function public.set_updated_at()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = public as $
 begin new.updated_at = now(); return new; end $$;
 
 drop trigger if exists profiles_updated_at on public.jobpro_profiles;

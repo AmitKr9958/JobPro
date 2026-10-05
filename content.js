@@ -35,7 +35,7 @@
   };
 
   const ANSWER_KEYS = ["workAuthorization", "sponsorship", "relocation", "noticePeriod", "gender", "eeo", "availableStartDate"];
-  const MULTI_FILL = new Set(["fullName", "firstName", "lastName", "email", "phone"]);
+  const MULTI_FILL = new Set(["email"]);
   const URL_KEYS = new Set(["linkedin", "github", "portfolio"]);
   const FILLED = [];
   let observerArmed = false;

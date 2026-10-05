@@ -1,13 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "JobPro – AI Job Autofill (Jobright-style)",
+  "name": "JobPro — Free AI Job Assistant",
   "version": "2.0.0",
-  "description": "One-click autofill + AI resume tailor + match score for Greenhouse, Lever, Workday, Ashby, LinkedIn and thousands of ATS. Personal open-source Jobright alternative.",
+  "description": "Free job application autofill, AI answers, resume tailoring, match scoring and tracking.",
   "permissions": [
     "storage",
     "activeTab",
-    "scripting",
-    "sidePanel",
     "tabs"
   ],
   "host_permissions": [
@@ -15,25 +13,24 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    },
-    "default_title": "JobPro Autofill"
+    "default_title": "JobPro"
   },
   "background": {
     "service_worker": "background.js"
   },
-  "side_panel": {
-    "default_path": "sidepanel.html"
-  },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "css": ["content.css"],
-      "run_at": "document_idle"
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "commands": {
@@ -42,25 +39,12 @@
         "default": "Ctrl+Shift+F",
         "mac": "Command+Shift+F"
       },
-      "description": "Trigger autofill on current page"
-    },
-    "open-sidepanel": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+J",
-        "mac": "Command+Shift+J"
-      },
-      "description": "Open JobPro side panel"
+      "description": "Autofill the current page"
     }
   },
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  },
-  "web_accessible_resources": [
-    {
-      "resources": ["icons/*"],
-      "matches": ["<all_urls>"]
-    }
-  ]
+  }
 }

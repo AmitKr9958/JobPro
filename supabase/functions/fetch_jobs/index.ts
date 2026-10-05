@@ -11,6 +11,6 @@ serve(async req=>{
  if(adzunaId&&adzunaKey){try{const r=await fetch(`https://api.adzuna.com/v1/api/jobs/${country}/search/1?app_id=${adzunaId}&app_key=${adzunaKey}&results_per_page=30&what=${q}&where=${location}&content-type=application/json`);if(r.ok){const d=await r.json();for(const j of d.results||[])jobs.push({source:"adzuna",external_id:String(j.id),title:j.title,company:j.company?.display_name||"",location:j.location?.display_name||"",description:j.description||"",url:j.redirect_url,posted_at:j.created});}}catch{}}
  try{const r=await fetch(`https://remotive.com/api/remote-jobs?search=${q}`);if(r.ok){const d=await r.json();for(const j of (d.jobs||[]).slice(0,30))jobs.push({source:"remotive",external_id:String(j.id),title:j.title,company:j.company_name||"",location:j.candidate_required_location||"Remote",description:j.description||"",url:j.url,posted_at:j.publication_date});}}catch{}
  const url=Deno.env.get("SUPABASE_URL"),key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
- if(url&&key&&jobs.length){await fetch(url+"/rest/v1/jobs?on_conflict=source,external_id",{method:"POST",headers:{"apikey":key,"Authorization":"Bearer "+key,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates"},body:JSON.stringify(jobs)}).catch(()=>{});}
+ if(url&&key&&jobs.length){await fetch(url+"/rest/v1/jobpro_jobs?on_conflict=source,external_id",{method:"POST",headers:{"apikey":key,"Authorization":"Bearer "+key,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates"},body:JSON.stringify(jobs)}).catch(()=>{});}
  return json({jobs});
 });

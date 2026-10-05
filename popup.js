@@ -224,16 +224,23 @@ function bindEvents() {
   $("#settingsBtn").addEventListener("click", () => {
     $("#settingFab").checked = settings.showFloatingButton !== false;
     $("#settingEmptyOnly").checked = settings.fillOnlyEmpty !== false;
+    $("#settingAiProvider").value = settings.aiProvider || "groq";
+    $("#settingAiKey").value = settings.aiApiKey || "";
     renderHistory();
     showView("settingsView");
   });
 
-  $("#settingsBackBtn").addEventListener("click", () => showView("mainView"));
+  $("#settingsBackBtn").addEventListener("click", () => {
+    // persist AI settings on leave
+    settings.aiProvider = $("#settingAiProvider").value;
+    settings.aiApiKey = $("#settingAiKey").value.trim();
+    saveSettings();
+    showView("mainView");
+  });
 
   $("#settingFab").addEventListener("change", (e) => {
     settings.showFloatingButton = e.target.checked;
     saveSettings();
-    // Notify current tab
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]) {
         chrome.tabs.sendMessage(tabs[0].id, {
@@ -246,6 +253,16 @@ function bindEvents() {
 
   $("#settingEmptyOnly").addEventListener("change", (e) => {
     settings.fillOnlyEmpty = e.target.checked;
+    saveSettings();
+  });
+
+  $("#settingAiProvider").addEventListener("change", (e) => {
+    settings.aiProvider = e.target.value;
+    saveSettings();
+  });
+
+  $("#settingAiKey").addEventListener("change", (e) => {
+    settings.aiApiKey = e.target.value.trim();
     saveSettings();
   });
 
@@ -289,6 +306,23 @@ function bindEvents() {
     reader.readAsText(file);
     e.target.value = "";
   });
+
+  // Resume PDF upload → store as base64
+  $("#f_resumeFile")?.addEventListener("change", (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 4.5 * 1024 * 1024) {
+      alert("File too large (max ~4.5 MB for Chrome storage).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      $("#f_resumeFile").dataset.existingBase64 = reader.result;
+      $("#f_resumeFile").dataset.existingName = file.name;
+      $("#resumeFileName").textContent = "Attached: " + file.name;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 // ====================== FORM HELPERS ======================
@@ -306,17 +340,28 @@ function fillForm(p) {
   $("#f_yearsExperience").value = p.yearsExperience || "";
   $("#f_salaryExpectation").value = p.salaryExpectation || "";
   $("#f_education").value = p.education || "";
-  $("#f_skills").value = p.skills || "";
+  // skills can be array or string
+  $("#f_skills").value = Array.isArray(p.skills) ? p.skills.join(", ") : (p.skills || "");
   $("#f_address").value = p.address || "";
   $("#f_city").value = p.city || "";
   $("#f_state").value = p.state || "";
   $("#f_zip").value = p.zip || "";
   $("#f_country").value = p.country || "";
+  $("#f_workAuthorization").value = p.workAuthorization || "";
+  $("#f_willingToRelocate").value = p.willingToRelocate || "";
+  $("#f_noticePeriod").value = p.noticePeriod || "";
   $("#f_resumeText").value = p.resumeText || "";
   $("#f_coverLetterTemplate").value = p.coverLetterTemplate || "";
+  $("#resumeFileName").textContent = p.resumeFileName ? "Attached: " + p.resumeFileName : "";
+  // keep existing base64 in memory via data attribute
+  $("#f_resumeFile").dataset.existingBase64 = p.resumeBase64 || "";
+  $("#f_resumeFile").dataset.existingName = p.resumeFileName || "";
 }
 
 function readForm() {
+  const skillsRaw = $("#f_skills").value.trim();
+  const skills = skillsRaw ? skillsRaw.split(",").map(s => s.trim()).filter(Boolean) : [];
+
   return {
     id: $("#profileId").value || createEmptyProfile().id,
     name: $("#f_name").value.trim() || "Unnamed",
@@ -331,14 +376,18 @@ function readForm() {
     yearsExperience: $("#f_yearsExperience").value.trim(),
     salaryExpectation: $("#f_salaryExpectation").value.trim(),
     education: $("#f_education").value.trim(),
-    skills: $("#f_skills").value.trim(),
+    skills,
     address: $("#f_address").value.trim(),
     city: $("#f_city").value.trim(),
     state: $("#f_state").value.trim(),
     zip: $("#f_zip").value.trim(),
     country: $("#f_country").value.trim(),
+    workAuthorization: $("#f_workAuthorization").value.trim(),
+    willingToRelocate: $("#f_willingToRelocate").value.trim(),
+    noticePeriod: $("#f_noticePeriod").value.trim(),
     resumeText: $("#f_resumeText").value.trim(),
     coverLetterTemplate: $("#f_coverLetterTemplate").value.trim(),
-    resumeFileName: ""
+    resumeFileName: $("#f_resumeFile").dataset.existingName || "",
+    resumeBase64: $("#f_resumeFile").dataset.existingBase64 || ""
   };
 }

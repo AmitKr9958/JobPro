@@ -167,6 +167,28 @@
           <input type="text" id="f_country" placeholder="United States" />
         </div>
 
+        <div class="field-row">
+          <div class="field">
+            <label>Work Authorization</label>
+            <input type="text" id="f_workAuthorization" placeholder="Authorized to work in the US" />
+          </div>
+          <div class="field">
+            <label>Willing to Relocate</label>
+            <input type="text" id="f_willingToRelocate" placeholder="Yes" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Notice Period / Availability</label>
+          <input type="text" id="f_noticePeriod" placeholder="2 weeks / Immediate" />
+        </div>
+
+        <div class="field">
+          <label>Resume PDF (for auto-attach)</label>
+          <input type="file" id="f_resumeFile" accept=".pdf,.doc,.docx" />
+          <small id="resumeFileName" style="color:#64748b;font-size:11px"></small>
+        </div>
+
         <div class="field">
           <label>Resume (plain text)</label>
           <textarea id="f_resumeText" rows="4" placeholder="Paste a plain-text version of your resume for easy pasting into textareas..."></textarea>
@@ -203,6 +225,23 @@
       </section>
 
       <section class="card">
+        <h3>AI (for Resume Tailor & Cover Letter)</h3>
+        <div class="field" style="margin-bottom:8px">
+          <label>Provider</label>
+          <select id="settingAiProvider" class="select">
+            <option value="groq">Groq (free & fast)</option>
+            <option value="openai">OpenAI</option>
+            <option value="gemini">Google Gemini</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>API Key</label>
+          <input type="password" id="settingAiKey" placeholder="Paste your API key here" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:8px" />
+        </div>
+        <p style="font-size:11px;color:#64748b;margin-top:6px">Get a free key at <a href="https://console.groq.com" target="_blank">console.groq.com</a></p>
+      </section>
+
+      <section class="card">
         <h3>Data</h3>
         <div class="actions-row">
           <button id="exportBtn" class="secondary-btn">Export Profiles</button>
@@ -218,7 +257,7 @@
         </ul>
       </section>
 
-      <p class="version">JobFill Pro v1.0.0 · Personal use</p>
+      <p class="version">JobPro v2.1 · Jobright-style</p>
     </main>
   </div>
 

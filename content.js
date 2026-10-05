@@ -35,7 +35,7 @@
   };
 
   const ANSWER_KEYS = ["workAuthorization", "sponsorship", "relocation", "noticePeriod", "gender", "eeo", "availableStartDate"];
-  const MULTI_FILL = new Set(["fullName", "firstName", "lastName", "email", "phone"]);
+  const MULTI_FILL = new Set(["email"]);
   const URL_KEYS = new Set(["linkedin", "github", "portfolio"]);
   const FILLED = [];
   let observerArmed = false;
@@ -103,6 +103,8 @@
     const describedBy = (el.getAttribute("aria-describedby") || "").split(/\\s+/).filter(Boolean)
       .map(id => document.getElementById(id)?.textContent || "").join(" ");
     const parentText = el.parentElement?.textContent || "";
+    const type = (el.type || "").toLowerCase();
+    const includeParentContext = type === "radio" || type === "checkbox" || el.getAttribute("role") === "combobox" || el.getAttribute("aria-haspopup") === "listbox";
     return [
       el.name,
       el.id,
@@ -112,7 +114,7 @@
       getLabelText(el),
       legend,
       describedBy,
-      parentText.slice(0, 500)
+      includeParentContext ? parentText.slice(0, 500) : ""
     ].filter(Boolean);
   }
 
@@ -129,9 +131,17 @@
     if (URL_KEYS.has(fieldKey) && hint && hint !== fieldKey) return 0;
     if (fieldKey === "fullName") {
       const descriptorText = normalize(getFieldDescriptors(el).join(" "));
+      const autoHint = normalize(el.getAttribute("autocomplete") || "");
+      if (autoHint && autoHint !== "name") return 0;
       if (["first name", "last name", "given name", "family name", "surname", "confirm name"].some(x => tokenPhraseMatch(descriptorText, x))) return 0;
     }
     const descriptors = getFieldDescriptors(el);
+    const labelHint = normalize(getLabelText(el));
+    const autocomplete = normalize(el.getAttribute("autocomplete") || "");
+    if (fieldKey === "firstName" && (tokenPhraseMatch(labelHint, "last name") || tokenPhraseMatch(labelHint, "family name") || tokenPhraseMatch(labelHint, "surname"))) return 0;
+    if (fieldKey === "lastName" && (tokenPhraseMatch(labelHint, "first name") || tokenPhraseMatch(labelHint, "given name") || tokenPhraseMatch(labelHint, "forename"))) return 0;
+    if (fieldKey === "firstName" && (autocomplete === "family name" || autocomplete === "family-name")) return 0;
+    if (fieldKey === "lastName" && (autocomplete === "given name" || autocomplete === "given-name")) return 0;
     let score = 0;
     for (const keyword of keywords) {
       for (const descriptor of descriptors) {
@@ -141,7 +151,6 @@
       }
     }
     const type = (el.type || "").toLowerCase();
-    const autocomplete = normalize(el.getAttribute("autocomplete") || "");
     if (fieldKey === "email" && (type === "email" || autocomplete === "email")) score += 10;
     if (fieldKey === "phone" && (type === "tel" || autocomplete === "tel" || autocomplete === "tel-national")) score += 10;
     if (fieldKey === "firstName" && (autocomplete === "given name" || autocomplete === "given-name")) score += 10;
@@ -342,8 +351,9 @@
 
   async function fillCustomDropdown(el, value, record, fillOnlyEmpty = true) {
     if (!value) return false;
-    if (fillOnlyEmpty && !isEmpty(el)) return false;
     const before = el.textContent || el.getAttribute("aria-valuetext") || "";
+    const placeholder = /^(select|choose|search|pick|please select|please choose)(?:\s+.+)?$/i.test(String(before).trim());
+    if (fillOnlyEmpty && !isEmpty(el) && !placeholder) return false;
     try {
       el.click();
       await new Promise(r => setTimeout(r, 80));
@@ -521,7 +531,7 @@
       const descriptors = normalize(getFieldDescriptors(input).join(" "));
       const resumeHint = tokenPhraseMatch(descriptors, "resume") || tokenPhraseMatch(descriptors, "cv") || tokenPhraseMatch(descriptors, "curriculum vitae");
       const pdfOnly = (input.accept || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean).every(x => x === "application/pdf" || x === ".pdf");
-      const visibleContainer = !isHiddenByAncestor(input) || !!input.closest("label, [role="button"]");
+      const visibleContainer = !isHiddenByAncestor(input) || !!input.closest('label, [role="button"]');
       if ((resumeHint || pdfOnly) && visibleContainer) {
         if (await storeAndAttachResume(input, profile)) filled++;
       }

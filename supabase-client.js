@@ -83,7 +83,7 @@ async function sbUploadResume(userId, fileName, dataUrl) {
   const bytes = Uint8Array.from(atob(raw), c=>c.charCodeAt(0));
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g,"_");
   const path = userId + "/" + Date.now() + "-" + safeName;
-  const res = await fetch(cfg.url + "/storage/v1/object/resumes/" + encodeURIComponent(path), {
+  const res = await fetch(cfg.url + "/storage/v1/object/jobpro_resumes/" + encodeURIComponent(path), {
     method:"POST",
     headers:{"apikey":cfg.anonKey,"Authorization":"Bearer "+cfg.session.access_token,"Content-Type":mime,"x-upsert":"false"},
     body:bytes
@@ -96,37 +96,37 @@ async function sbSyncLocal() {
   const cfg = await getSupabaseConfig();
   if (!cfg.session?.access_token) return {ok:false, reason:"not_logged_in"};
   const userId = sbUserId(cfg.session);
-  const local = await storageGet(["profiles","activeProfileId","applications","savedAnswers"]);
-  const profiles = local.profiles || [];
+  const local = await storageGet(["jobpro_profiles","activeProfileId","jobpro_applications","savedAnswers"]);
+  const jobpro_profiles = local.jobpro_profiles || [];
 
-  for (const p of profiles) {
-    await sbUpsert("profiles", {user_id:userId,name:p.name||"General",full_name:p.fullName||"",email:p.email||"",phone:p.phone||"",links:{linkedin:p.linkedin||"",github:p.github||"",portfolio:p.portfolio||""},answers:p.answers||{}}, "user_id,name");
+  for (const p of jobpro_profiles) {
+    await sbUpsert("jobpro_profiles", {user_id:userId,name:p.name||"General",full_name:p.fullName||"",email:p.email||"",phone:p.phone||"",links:{linkedin:p.linkedin||"",github:p.github||"",portfolio:p.portfolio||""},answers:p.answers||{}}, "user_id,name");
     if (p.resumeFileBase64) {
       try {
         const path = await sbUploadResume(userId,p.resumeFileName||"resume.pdf",p.resumeFileBase64);
-        await sbUpsert("resumes",{user_id:userId,file_path:path,parsed_text:p.resumeText||"",is_default:true});
+        await sbUpsert("jobpro_resumes",{user_id:userId,file_path:path,parsed_text:p.resumeText||"",is_default:true});
       } catch (_) {}
     }
   }
 
   const answers = local.savedAnswers || [];
-  for (const a of answers) await sbUpsert("saved_answers",{user_id:userId,question_hash:a.question_hash||a.questionHash,question:a.question||"",answer:a.answer||"",updated_at:a.updated_at||new Date().toISOString()},"user_id,question_hash");
+  for (const a of answers) await sbUpsert("jobpro_saved_answers",{user_id:userId,question_hash:a.question_hash||a.questionHash,question:a.question||"",answer:a.answer||"",updated_at:a.updated_at||new Date().toISOString()},"user_id,question_hash");
 
-  const apps = local.applications || [];
-  for (const a of apps) await sbUpsert("applications",{user_id:userId,job_id:a.job_id||null,url:a.url||"",company:a.company||"",title:a.title||"",status:a.status||"saved",applied_at:a.applied_at||null,notes:a.notes||"",match_score:a.match_score ?? null,resume_id:a.resume_id||null});
+  const apps = local.jobpro_applications || [];
+  for (const a of apps) await sbUpsert("jobpro_applications",{user_id:userId,job_id:a.job_id||null,url:a.url||"",company:a.company||"",title:a.title||"",status:a.status||"saved",applied_at:a.applied_at||null,notes:a.notes||"",match_score:a.match_score ?? null,resume_id:a.resume_id||null});
 
-  const remoteProfiles = await sbQuery("profiles","select=*&user_id=eq."+encodeURIComponent(userId));
-  const remoteAnswers = await sbQuery("saved_answers","select=*&user_id=eq."+encodeURIComponent(userId));
-  const remoteApps = await sbQuery("applications","select=*&user_id=eq."+encodeURIComponent(userId)+"&order=applied_at.desc");
+  const remoteProfiles = await sbQuery("jobpro_profiles","select=*&user_id=eq."+encodeURIComponent(userId));
+  const remoteAnswers = await sbQuery("jobpro_saved_answers","select=*&user_id=eq."+encodeURIComponent(userId));
+  const remoteApps = await sbQuery("jobpro_applications","select=*&user_id=eq."+encodeURIComponent(userId)+"&order=applied_at.desc");
 
-  const mergedProfiles = [...profiles];
+  const mergedProfiles = [...jobpro_profiles];
   for (const r of remoteProfiles || []) {
     const idx=mergedProfiles.findIndex(p=>p.name===r.name);
     const localP=idx>=0?mergedProfiles[idx]:{id:"remote_"+r.id,name:r.name};
     const merged={...localP,fullName:r.full_name,email:r.email,phone:r.phone,linkedin:r.links?.linkedin||"",github:r.links?.github||"",portfolio:r.links?.portfolio||"",answers:r.answers||{}};
     if(idx>=0) mergedProfiles[idx]=merged; else mergedProfiles.push(merged);
   }
-  await storageSet({profiles:mergedProfiles,savedAnswers:remoteAnswers||[],applications:remoteApps||[],lastSyncAt:Date.now()});
+  await storageSet({jobpro_profiles:mergedProfiles,savedAnswers:remoteAnswers||[],jobpro_applications:remoteApps||[],lastSyncAt:Date.now()});
   return {ok:true,profileCount:mergedProfiles.length,applicationCount:(remoteApps||[]).length};
 }
 
@@ -135,5 +135,5 @@ async function sbAi(action,input) {
 }
 
 async function sbFetchJobs(query,location) {
-  return sbFetch("/functions/v1/fetch_jobs",{method:"POST",body:JSON.stringify({query,location})});
+  return sbFetch("/functions/v1/fetch_jobpro_jobs",{method:"POST",body:JSON.stringify({query,location})});
 }

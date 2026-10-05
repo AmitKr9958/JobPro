@@ -492,8 +492,18 @@
     const placeholders = [values.coverLetter, values.currentCompany, values.currentTitle].some(v => String(v).includes("{{company}}") || String(v).includes("{{role}}"));
     if (placeholders) showToast("Company or job title was not found; placeholder kept for review.");
 
-    if (filled > 0) showReviewOverlay();
-    else showToast("No empty matching fields found.");
+    if (filled > 0) {
+      chrome.runtime.sendMessage({
+        action: "logApplication",
+        url: location.href,
+        title: document.title,
+        profileName: profile.name,
+        filledCount: filled
+      });
+      showReviewOverlay();
+    } else {
+      showToast("No empty matching fields found.");
+    }
     observerArmed = true;
     return { filled, job };
   }

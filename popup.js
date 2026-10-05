@@ -22,13 +22,13 @@ async function getJob(){try{const[t]=await chrome.tabs.query({active:true,curren
 function safeContext(p){return{resume:sanitizeAiText(p.resumeText||""),skills:p.skills||"",education:p.education||"",title:p.currentTitle||"",company:p.currentCompany||"",yearsExperience:p.yearsExperience||""}}
 function sanitizeAiText(value){
   let s=String(value||"");
-  s=s.replace(/\\b(?:\\+?91[-\\s]?)?[6-9]\\d{9}\\b/g,"[PHONE REDACTED]");
-  s=s.replace(/\\b[A-Z]{5}\\d{4}[A-Z]\\b/gi,"[PAN REDACTED]");
-  s=s.replace(/\\b\\d{4}[ -]?\\d{4}[ -]?\\d{4}\\b/g,"[ID REDACTED]");
-  s=s.replace(/\\b(?:passport|aadhaar|aadhar|driving license|driver.?s license|ssn|government id)\\s*[:#-]?\\s*[^\\n,;|]+/gi,"[ID REDACTED]");
-  s=s.replace(/\\b(?:salary|ctc|compensation|expected pay|expected salary)\\s*[:#-]?\\s*[^\\n,;|]+/gi,"[SALARY REDACTED]");
-  s=s.replace(/\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b/gi,"[EMAIL REDACTED]");
-  s=s.replace(/^(?:address|home address|street address|residential address)\\s*[:#-].*$/gim,"[ADDRESS REDACTED]");
+  s=s.replace(/\b(?:\\+?91[-\s]?)?[6-9]\d{9}\b/g,"[PHONE REDACTED]");
+  s=s.replace(/\b[A-Z]{5}\d{4}[A-Z]\b/gi,"[PAN REDACTED]");
+  s=s.replace(/\b\d{4}[ -]?\d{4}[ -]?\d{4}\b/g,"[ID REDACTED]");
+  s=s.replace(/\b(?:passport|aadhaar|aadhar|driving license|driver.?s license|ssn|government id)\s*[:#-]?\s*[^\n,;|]+/gi,"[ID REDACTED]");
+  s=s.replace(/\b(?:salary|ctc|compensation|expected pay|expected salary)\s*[:#-]?\s*[^\n,;|]+/gi,"[SALARY REDACTED]");
+  s=s.replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,"[EMAIL REDACTED]");
+  s=s.replace(/^(?:address|home address|street address|residential address)\s*[:#-].*$/gim,"[ADDRESS REDACTED]");
   return s.slice(0,18000);
 }
 async function consent(){const d=await get(["aiConsent"]);if(d.aiConsent)return true;const ok=confirm("JobPro AI will send your resume text and non-sensitive profile facts to the configured AI provider through Supabase. Phone, address, IDs and salary are excluded. Continue?");if(ok)await store({aiConsent:true});return ok}

@@ -1,0 +1,23 @@
+name: Phase 1 tests
+# CI validation
+# latest test harness
+
+on:
+  push:
+    branches: [phase-1-autofill, phase-2-backend, main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm test
+      - run: node --check popup.js
+      - run: node --check background.js
+      - run: node --check supabase-client.js
+      - run: node --check content.js

@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.fetch_jobs]
 verify_jwt = true
+
+[functions.delete_data]
+verify_jwt = true

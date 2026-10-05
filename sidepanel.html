@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JobPro</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="logo">⚡ JobPro</div>
+      <div class="header-actions">
+        <button id="refreshBtn" class="icon-btn" title="Refresh">↻</button>
+      </div>
+    </header>
+
+    <section class="match-section" id="matchSection">
+      <div class="match-score" id="matchScore">—</div>
+      <div class="match-label">Match Score</div>
+      <div class="match-bar"><div class="match-fill" id="matchFill"></div></div>
+      <div class="match-details" id="matchDetails"></div>
+    </section>
+
+    <section class="actions">
+      <button id="autofillBtn" class="primary-btn">
+        <span>⚡</span> Autofill Application
+      </button>
+      <button id="tailorBtn" class="secondary-btn">
+        <span>✨</span> AI Tailor Resume
+      </button>
+      <button id="coverBtn" class="secondary-btn">
+        <span>📝</span> Generate Cover Letter
+      </button>
+    </section>
+
+    <section class="card">
+      <div class="card-title">Active Profile</div>
+      <select id="profileSelect" class="select"></select>
+      <div class="profile-preview" id="profilePreview"></div>
+    </section>
+
+    <section class="card" id="jdSection">
+      <div class="card-title">Job Description (for AI)</div>
+      <textarea id="jdText" rows="6" placeholder="Paste the job description here for match score + AI tailoring..."></textarea>
+      <button id="analyzeBtn" class="text-btn">Analyze Match</button>
+    </section>
+
+    <section class="card">
+      <div class="card-title">Quick Answers</div>
+      <div id="quickAnswers" class="quick-answers"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-title">Recent Applications</div>
+      <ul id="historyList" class="history"></ul>
+    </section>
+
+    <footer class="footer">
+      <button id="settingsBtn" class="text-btn">Settings & API Key</button>
+      <span class="version">v2.0 · Jobright-style</span>
+    </footer>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

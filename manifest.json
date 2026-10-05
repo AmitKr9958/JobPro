@@ -1,12 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "JobFill Pro – Instant Job Application Autofill",
-  "version": "1.0.0",
-  "description": "1-click autofill for job applications. Fast, private, offline-first personal autofill tool.",
+  "name": "JobPro – AI Job Autofill (Jobright-style)",
+  "version": "2.0.0",
+  "description": "One-click autofill + AI resume tailor + match score for Greenhouse, Lever, Workday, Ashby, LinkedIn and thousands of ATS. Personal open-source Jobright alternative.",
   "permissions": [
     "storage",
     "activeTab",
-    "scripting"
+    "scripting",
+    "sidePanel",
+    "tabs"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -18,10 +20,13 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "default_title": "JobFill Pro"
+    "default_title": "JobPro Autofill"
   },
   "background": {
     "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
   },
   "content_scripts": [
     {
@@ -38,6 +43,13 @@
         "mac": "Command+Shift+F"
       },
       "description": "Trigger autofill on current page"
+    },
+    "open-sidepanel": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+J",
+        "mac": "Command+Shift+J"
+      },
+      "description": "Open JobPro side panel"
     }
   },
   "icons": {

@@ -1,108 +1,82 @@
-# JobFill Pro – Instant Job Application Autofill
+# JobPro – AI Job Autofill (Jobright-style)
 
-A fast, private, offline-first Chrome extension (Manifest V3) for personal use. Fill job application forms in 1 click or with a keyboard shortcut.
+Open-source Chrome extension inspired by **Jobright Autofill**.
 
-## Features
+One-click form filling + AI resume tailoring + match score for Greenhouse, Lever, Ashby, Workday, LinkedIn Easy Apply and thousands of ATS platforms.
 
-- **One-click / keyboard autofill** (`Ctrl+Shift+F` / `Cmd+Shift+F`)
-- **Floating action button** on every page (draggable, can be hidden)
-- **Multiple profiles** (Software Engineer, Data Analyst, etc.)
-- Smart field detection using name, id, placeholder, aria-label, labels, and heuristics
-- Works on LinkedIn Easy Apply, Greenhouse, Lever, Workday, Ashby, BambooHR, company career pages, and most other forms
-- Cover letter templates with placeholders (`{{name}}`, `{{company}}`, `{{role}}`, `{{skills}}`)
-- Plain-text resume storage for quick pasting
-- Export / Import profiles as JSON
-- Application history (last 50)
-- Only fills empty fields (configurable)
-- Zero tracking, fully local storage
+## Features (v2.0)
 
-## Installation (Unpacked)
+| Feature | Status |
+|---------|--------|
+| One-click Autofill | ✅ |
+| Floating action button | ✅ |
+| Keyboard shortcut (`Ctrl+Shift+F`) | ✅ |
+| **Side Panel** (`Ctrl+Shift+J`) | ✅ |
+| Multiple profiles | ✅ |
+| Smart field detection | ✅ |
+| Match Score (keyword + skills) | ✅ |
+| AI Resume Tailor (your API key) | ✅ |
+| AI Cover Letter | ✅ |
+| Application tracker / history | ✅ |
+| Cover letter templates | ✅ |
+| Export / Import profiles | ✅ |
+| Local-first + optional AI | ✅ |
 
-1. Open Chrome and go to `chrome://extensions`
-2. Enable **Developer mode** (top-right toggle)
-3. Click **Load unpacked**
-4. Select the `jobfill-pro` folder
-5. Pin the extension for easy access
+## Supported AI Providers (bring your own key)
 
-## First-time Setup
+- **Groq** (recommended – free & fast) → https://console.groq.com
+- OpenAI
+- Google Gemini
 
-1. Click the extension icon
-2. Click **Edit Profile** (or **+ New**)
-3. Fill in your details (name, email, phone, LinkedIn, etc.)
-4. Optionally paste a plain-text version of your resume and customize the cover letter template
-5. Save
+## Installation
 
-You can create multiple profiles and switch between them instantly.
+1. Clone or download this repo
+2. Go to `chrome://extensions`
+3. Enable **Developer mode**
+4. Click **Load unpacked** → select this folder
+5. Pin the extension
 
-## How to Use
+## Quick Start
 
-### Method 1 – Floating Button
-- A purple “⚡ Fill” button appears on pages.
-- Click it to autofill the current form.
-- Drag it anywhere you like.
+1. Open the extension popup → **Edit Profile** → fill your details + paste resume text
+2. (Optional) Open Settings and paste a free Groq API key for AI features
+3. Go to any job application page
+4. Press `Ctrl+Shift+J` to open the **Side Panel**
+5. Paste the job description → click **Analyze Match**
+6. Click **Autofill Application** or use the floating ⚡ button / `Ctrl+Shift+F`
 
-### Method 2 – Popup
-- Click the extension icon → big **Autofill This Page** button.
+## Keyboard Shortcuts
 
-### Method 3 – Keyboard
-- Press `Ctrl+Shift+F` (Windows/Linux) or `Cmd+Shift+F` (Mac).
+- `Ctrl+Shift+F` / `Cmd+Shift+F` → Autofill current page
+- `Ctrl+Shift+J` / `Cmd+Shift+J` → Open Side Panel
 
-## Customizing Field Detection
+## How it compares to Jobright
 
-The detection logic lives in `content.js` inside the `FIELD_MAP` object.
+Jobright is a full commercial platform (job matching feed, account system, Orion agent, insider connections, paid credits).
 
-Example:
-```js
-email: [
-  "email", "e-mail", "emailaddress", "email_address", "mail", ...
-]
-```
+**JobPro** focuses on the core high-value pieces that actually save time when applying:
 
-Add more keywords if a site uses unusual field names. Higher-scoring matches are preferred.
+- Extremely fast autofill
+- Side panel workflow
+- AI tailoring with *your* API key (no monthly credit limits)
+- Completely private / local storage
 
-## Permissions
+You keep full control and can improve the selectors for any ATS you use most.
 
-- `storage` – save your profiles locally
-- `activeTab` + `scripting` – inject autofill on the current tab
-- `<all_urls>` – so it works on any job site (you can restrict this later if desired)
-
-No data ever leaves your browser.
-
-## Optional: AI Tailoring
-
-The current version uses clean templates. If you later want AI:
-
-1. Add an API key field in settings
-2. Call any LLM (OpenAI, Groq, Gemini, local Ollama, etc.) with the job description + your resume text
-3. Put the generated text into the cover letter / summary fields
-
-The structure is ready for that extension.
-
-## File Structure
+## Project Structure
 
 ```
 jobfill-pro/
 ├── manifest.json
-├── background.js          # Service worker + shortcut handling
-├── content.js             # Form detection, autofill, floating button
+├── background.js          # Service worker + AI proxy
+├── content.js             # Form detection + floating button
 ├── content.css
-├── popup.html
-├── popup.js
-├── popup.css
+├── popup.html / .js / .css
+├── sidepanel.html / .js / .css
 ├── icons/
-│   ├── icon16.png
-│   ├── icon48.png
-│   └── icon128.png
 └── README.md
 ```
 
-## Tips for Maximum Speed
-
-1. Keep 2–3 profiles ready (different seniority / role focus)
-2. Pre-fill the most common fields so 80–90% of forms need zero typing
-3. Use the floating button + keyboard shortcut for true 1-second applies
-4. After filling, quickly scan for any site-specific questions the detector missed
-
 ## License
 
-Personal use. Do whatever you want with it.
+MIT – personal and commercial use allowed.

@@ -133,6 +133,7 @@
     }
     const descriptors = getFieldDescriptors(el);
     const labelHint = normalize(getLabelText(el));
+    const autocomplete = normalize(el.getAttribute("autocomplete") || "");
     if (fieldKey === "firstName" && (tokenPhraseMatch(labelHint, "last name") || tokenPhraseMatch(labelHint, "family name") || tokenPhraseMatch(labelHint, "surname"))) return 0;
     if (fieldKey === "lastName" && (tokenPhraseMatch(labelHint, "first name") || tokenPhraseMatch(labelHint, "given name") || tokenPhraseMatch(labelHint, "forename"))) return 0;
     if (fieldKey === "firstName" && (autocomplete === "family name" || autocomplete === "family-name")) return 0;
@@ -146,7 +147,6 @@
       }
     }
     const type = (el.type || "").toLowerCase();
-    const autocomplete = normalize(el.getAttribute("autocomplete") || "");
     if (fieldKey === "email" && (type === "email" || autocomplete === "email")) score += 10;
     if (fieldKey === "phone" && (type === "tel" || autocomplete === "tel" || autocomplete === "tel-national")) score += 10;
     if (fieldKey === "firstName" && (autocomplete === "given name" || autocomplete === "given-name")) score += 10;

@@ -106,3 +106,6 @@ jobfill-pro/
 ## License
 
 Personal use. Do whatever you want with it.
+
+
+<!-- Phase 1 CI trigger -->

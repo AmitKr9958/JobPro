@@ -1,32 +1,34 @@
 {
   "manifest_version": 3,
-  "name": "JobFill Pro – Instant Job Application Autofill",
-  "version": "1.1.0",
-  "description": "1-click autofill for job applications. Fast, private, offline-first personal autofill tool.",
+  "name": "JobPro — Free AI Job Assistant",
+  "version": "2.0.0",
+  "description": "Free job application autofill, AI answers, resume tailoring, match scoring and tracking.",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "tabs"
   ],
   "host_permissions": [
     "<all_urls>"
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    },
-    "default_title": "JobFill Pro"
+    "default_title": "JobPro"
   },
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "css": ["content.css"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_idle",
       "all_frames": true
     }
@@ -37,7 +39,7 @@
         "default": "Ctrl+Shift+F",
         "mac": "Command+Shift+F"
       },
-      "description": "Trigger autofill on current page"
+      "description": "Autofill the current page"
     }
   },
   "icons": {

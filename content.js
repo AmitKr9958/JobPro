@@ -131,6 +131,8 @@
     if (URL_KEYS.has(fieldKey) && hint && hint !== fieldKey) return 0;
     if (fieldKey === "fullName") {
       const descriptorText = normalize(getFieldDescriptors(el).join(" "));
+      const autoHint = normalize(el.getAttribute("autocomplete") || "");
+      if (autoHint && autoHint !== "name") return 0;
       if (["first name", "last name", "given name", "family name", "surname", "confirm name"].some(x => tokenPhraseMatch(descriptorText, x))) return 0;
     }
     const descriptors = getFieldDescriptors(el);

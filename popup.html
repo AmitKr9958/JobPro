@@ -1,240 +1,40 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>JobFill Pro</title>
-  <link rel="stylesheet" href="popup.css" />
-</head>
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JobPro</title><link rel="stylesheet" href="popup.css"></head>
 <body>
-  <div class="app">
-    <!-- Header -->
-    <header class="header">
-      <div class="logo">
-        <span class="logo-icon">⚡</span>
-        <span class="logo-text">JobFill Pro</span>
-      </div>
-      <button id="settingsBtn" class="icon-btn" title="Settings">⚙️</button>
-    </header>
-
-    <!-- Main View -->
-    <main id="mainView">
-      <!-- Active Profile -->
-      <section class="card">
-        <div class="card-header">
-          <label for="profileSelect">Active Profile</label>
-          <button id="newProfileBtn" class="text-btn">+ New</button>
-        </div>
-        <select id="profileSelect" class="select"></select>
-      </section>
-
-      <!-- Big Autofill Button -->
-      <button id="autofillBtn" class="primary-btn">
-        <span class="btn-icon">⚡</span>
-        Autofill This Page
-      </button>
-      <p class="hint">or press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd></p>
-
-      <!-- Quick Profile Preview -->
-      <section class="card" id="previewCard">
-        <div class="preview-row">
-          <span class="label">Name</span>
-          <span id="previewName" class="value">—</span>
-        </div>
-        <div class="preview-row">
-          <span class="label">Email</span>
-          <span id="previewEmail" class="value">—</span>
-        </div>
-        <div class="preview-row">
-          <span class="label">Phone</span>
-          <span id="previewPhone" class="value">—</span>
-        </div>
-        <div class="preview-row">
-          <span class="label">LinkedIn</span>
-          <span id="previewLinkedin" class="value">—</span>
-        </div>
-      </section>
-
-      <div class="actions-row">
-        <button id="editProfileBtn" class="secondary-btn">Edit Profile</button>
-        <button id="deleteProfileBtn" class="danger-btn">Delete</button>
-      </div>
-    </main>
-
-    <!-- Edit Profile View -->
-    <main id="editView" class="hidden">
-      <div class="view-header">
-        <button id="backBtn" class="icon-btn">←</button>
-        <h2 id="editTitle">Edit Profile</h2>
-      </div>
-
-      <form id="profileForm" class="form">
-        <input type="hidden" id="profileId" />
-
-        <div class="field">
-          <label>Profile Name</label>
-          <input type="text" id="f_name" placeholder="e.g. Software Engineer" required />
-        </div>
-
-        <div class="field-row">
-          <div class="field">
-            <label>Full Name</label>
-            <input type="text" id="f_fullName" placeholder="John Doe" />
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field">
-            <label>Email</label>
-            <input type="email" id="f_email" placeholder="john@email.com" />
-          </div>
-          <div class="field">
-            <label>Phone</label>
-            <input type="tel" id="f_phone" placeholder="+1 555 123 4567" />
-          </div>
-        </div>
-
-        <div class="field">
-          <label>LinkedIn URL</label>
-          <input type="url" id="f_linkedin" placeholder="https://linkedin.com/in/..." />
-        </div>
-
-        <div class="field-row">
-          <div class="field">
-            <label>GitHub</label>
-            <input type="url" id="f_github" placeholder="https://github.com/..." />
-          </div>
-          <div class="field">
-            <label>Portfolio</label>
-            <input type="url" id="f_portfolio" placeholder="https://..." />
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field">
-            <label>Current Title</label>
-            <input type="text" id="f_currentTitle" placeholder="Software Engineer" />
-          </div>
-          <div class="field">
-            <label>Current Company</label>
-            <input type="text" id="f_currentCompany" placeholder="Acme Inc" />
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field">
-            <label>Years of Experience</label>
-            <input type="text" id="f_yearsExperience" placeholder="5" />
-          </div>
-          <div class="field">
-            <label>Salary Expectation</label>
-            <input type="text" id="f_salaryExpectation" placeholder="$120k" />
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Education</label>
-          <input type="text" id="f_education" placeholder="B.S. Computer Science, MIT" />
-        </div>
-
-        <div class="field">
-          <label>Skills (comma separated)</label>
-          <input type="text" id="f_skills" placeholder="JavaScript, React, Node.js, Python" />
-        </div>
-
-        <div class="field">
-          <label>Address</label>
-          <input type="text" id="f_address" placeholder="123 Main St" />
-        </div>
-
-        <div class="field-row">
-          <div class="field">
-            <label>City</label>
-            <input type="text" id="f_city" />
-          </div>
-          <div class="field">
-            <label>State</label>
-            <input type="text" id="f_state" />
-          </div>
-          <div class="field">
-            <label>ZIP</label>
-            <input type="text" id="f_zip" />
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Country</label>
-          <input type="text" id="f_country" placeholder="United States" />
-        </div>
-
-        <div class="field">
-          <label>Resume (plain text)</label>
-          <textarea id="f_resumeText" rows="4" placeholder="Paste a plain-text version of your resume for easy pasting into textareas..."></textarea>
-        </div>
-
-        <div class="field">
-          <label>Resume PDF</label>
-          <input type="file" id="f_resumeFile" accept="application/pdf,.pdf" />
-          <small id="resumeFileName">No PDF stored</small>
-        </div>
-
-        <div class="field">
-          <label>Application answers</label>
-          <textarea id="f_answers" rows="7" placeholder='JSON, for example:
-{"workAuthorization":"Yes","sponsorship":"No","relocation":"Yes","noticePeriod":"30 days","gender":"Prefer not to say","eeo":"Decline to answer","availableStartDate":"2026-11-01"}'></textarea>
-          <small>Used for radio, checkbox, dropdown and date fields. Leave blank if you do not want an answer filled.</small>
-        </div>
-
-        <div class="field">
-          <label>Cover Letter Template</label>
-          <textarea id="f_coverLetterTemplate" rows="5" placeholder="Use {{name}}, {{company}}, {{role}}, {{skills}} as placeholders"></textarea>
-        </div>
-
-        <div class="form-actions">
-          <button type="button" id="cancelEditBtn" class="secondary-btn">Cancel</button>
-          <button type="submit" class="primary-btn">Save Profile</button>
-        </div>
-      </form>
-    </main>
-
-    <!-- Settings View -->
-    <main id="settingsView" class="hidden">
-      <div class="view-header">
-        <button id="settingsBackBtn" class="icon-btn">←</button>
-        <h2>Settings</h2>
-      </div>
-
-      <section class="card">
-        <label class="toggle-row">
-          <span>Show floating button</span>
-          <input type="checkbox" id="settingFab" checked />
-        </label>
-        <label class="toggle-row">
-          <span>Only fill empty fields</span>
-          <input type="checkbox" id="settingEmptyOnly" checked />
-        </label>
-      </section>
-
-      <section class="card">
-        <h3>Data</h3>
-        <div class="actions-row">
-          <button id="exportBtn" class="secondary-btn">Export Profiles</button>
-          <button id="importBtn" class="secondary-btn">Import</button>
-        </div>
-        <input type="file" id="importFile" accept=".json" class="hidden" />
-      </section>
-
-      <section class="card">
-        <h3>Recent Applications</h3>
-        <ul id="historyList" class="history-list">
-          <li class="empty">No history yet</li>
-        </ul>
-      </section>
-
-      <p class="version">JobFill Pro v1.0.0 · Personal use</p>
-    </main>
-  </div>
-
-  <script src="popup.js"></script>
-</body>
-</html>
+<header><div><b>JobPro</b><span>Free AI Job Assistant</span></div><button id="syncBtn">Sync</button></header>
+<nav><button class="tab active" data-tab="home">Autofill</button><button class="tab" data-tab="ai">AI</button><button class="tab" data-tab="jobs">Jobs</button><button class="tab" data-tab="tracker">Tracker</button><button class="tab" data-tab="settings">Settings</button></nav>
+<main>
+<section id="home" class="panel">
+  <button id="autofillBtn" class="primary">⚡ Autofill This Page</button>
+  <div class="grid"><button id="editProfileBtn">Edit profile</button><button id="newProfileBtn">New profile</button></div>
+  <label>Profile<select id="profileSelect"></select></label>
+  <div class="card"><b>Current profile</b><div id="preview"></div></div>
+  <div id="status" class="status"></div>
+</section>
+<section id="ai" class="panel hidden">
+  <div class="card"><b>AI answers</b><p>AI sees only job text and non-sensitive resume/profile facts. Phone, address, IDs and salary are never sent.</p><button id="answerBtn" class="primary">Answer current application question</button><textarea id="aiOutput" placeholder="AI result"></textarea></div>
+  <div class="grid"><button id="tailorBtn">Tailor resume</button><button id="coverBtn">Write cover letter</button></div>
+  <div class="card"><button id="scoreBtn">Job match score</button><div id="scoreOutput"></div></div>
+</section>
+<section id="jobs" class="panel hidden">
+  <div class="grid"><input id="jobQuery" placeholder="Power BI Developer"><input id="jobLocation" placeholder="Delhi NCR"></div><button id="searchJobsBtn" class="primary">Find jobs</button><div id="jobsList"></div>
+</section>
+<section id="tracker" class="panel hidden">
+  <div class="card"><b>Application tracker</b><p>Nothing is auto-submitted. Save or mark an application manually.</p></div><div id="trackerList"></div>
+</section>
+<section id="settings" class="panel hidden">
+  <div class="card"><b>Supabase</b><input id="sbUrl" placeholder="Supabase project URL"><input id="sbKey" placeholder="Publishable/anon key"><button id="saveConfigBtn">Save connection</button></div>
+  <div class="card"><b>Account</b><input id="authEmail" type="email" placeholder="Email"><input id="authPassword" type="password" placeholder="Password"><div class="grid"><button id="loginBtn">Log in</button><button id="signupBtn">Sign up</button></div><button id="logoutBtn">Log out</button><div id="authStatus"></div></div>
+  <div class="card"><label><input type="checkbox" id="fabToggle" checked> Show floating autofill button</label><label><input type="checkbox" id="emptyToggle" checked> Fill only empty fields</label></div>
+  <div class="card"><b>Profile</b><form id="profileForm">
+    <input id="f_name" placeholder="Profile name"><input id="f_fullName" placeholder="Full name"><input id="f_email" placeholder="Email"><input id="f_phone" placeholder="Phone">
+    <input id="f_linkedin" placeholder="LinkedIn"><input id="f_github" placeholder="GitHub"><input id="f_portfolio" placeholder="Portfolio">
+    <input id="f_currentTitle" placeholder="Current title"><input id="f_currentCompany" placeholder="Current company"><input id="f_yearsExperience" placeholder="Years of experience">
+    <input id="f_education" placeholder="Education"><input id="f_skills" placeholder="Skills">
+    <input id="f_city" placeholder="City"><input id="f_state" placeholder="State"><input id="f_country" placeholder="Country">
+    <textarea id="f_resumeText" placeholder="Resume text"></textarea><input id="f_resumeFile" type="file" accept=".pdf,application/pdf"><small id="resumeFileName"></small>
+    <textarea id="f_coverLetterTemplate" placeholder="Cover letter template"></textarea><textarea id="f_answers" placeholder='Application answers JSON'></textarea>
+    <button class="primary" type="submit">Save profile</button>
+  </form></div>
+</section>
+</main><script src="supabase-client.js"></script><script src="popup.js"></script></body></html>

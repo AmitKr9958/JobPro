@@ -1,0 +1,17 @@
+const fs=require("fs"),assert=require("assert");
+const src=fs.readFileSync("popup.js","utf8");
+const start=src.indexOf("function sanitizeAiText");
+const end=src.indexOf("async function consent",start);
+if(start<0||end<0) throw new Error("sanitizer missing");
+const fnSrc=src.slice(start,end).trim();
+const sanitize=new Function(fnSrc+"; return sanitizeAiText;")();
+const input="Call +91 9876543210. PAN ABCDE1234F. Aadhaar 1234 5678 9012. salary: 18 LPA. Address: 22 Main Road. amit@example.com";
+const out=sanitize(input);
+for(const bad of ["9876543210","ABCDE1234F","1234 5678 9012","18 LPA","22 Main Road","amit@example.com"]) assert(!out.includes(bad),bad+" was not redacted");
+assert(out.includes("[PHONE REDACTED]"));
+assert(out.includes("[PAN REDACTED]"));
+assert(out.includes("[ID REDACTED]"));
+assert(out.includes("[SALARY REDACTED]"));
+assert(out.includes("[ADDRESS REDACTED]"));
+assert(out.includes("[EMAIL REDACTED]"));
+console.log("privacy redaction tests passed");

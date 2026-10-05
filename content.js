@@ -349,8 +349,9 @@
 
   async function fillCustomDropdown(el, value, record, fillOnlyEmpty = true) {
     if (!value) return false;
-    if (fillOnlyEmpty && !isEmpty(el)) return false;
     const before = el.textContent || el.getAttribute("aria-valuetext") || "";
+    const placeholder = /^(select|choose|search|pick|please select|please choose)(?:\s+.+)?$/i.test(String(before).trim());
+    if (fillOnlyEmpty && !isEmpty(el) && !placeholder) return false;
     try {
       el.click();
       await new Promise(r => setTimeout(r, 80));

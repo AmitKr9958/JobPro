@@ -122,3 +122,18 @@ with check (bucket_id = 'resumes' and (storage.foldername(name))[1] = auth.uid()
 drop policy if exists "resume objects own delete" on storage.objects;
 create policy "resume objects own delete" on storage.objects for delete to authenticated
 using (bucket_id = 'resumes' and (storage.foldername(name))[1] = auth.uid()::text);
+
+
+create table if not exists public.ai_cache (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  cache_key text not null,
+  action text not null,
+  result text not null,
+  created_at timestamptz not null default now(),
+  unique(user_id, cache_key)
+);
+alter table public.ai_cache enable row level security;
+drop policy if exists "ai cache own rows" on public.ai_cache;
+create policy "ai cache own rows" on public.ai_cache for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
+create index if not exists ai_cache_user_created_idx on public.ai_cache(user_id, created_at desc);

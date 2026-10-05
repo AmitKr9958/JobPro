@@ -132,6 +132,11 @@
       if (["first name", "last name", "given name", "family name", "surname", "confirm name"].some(x => tokenPhraseMatch(descriptorText, x))) return 0;
     }
     const descriptors = getFieldDescriptors(el);
+    const labelHint = normalize(getLabelText(el));
+    if (fieldKey === "firstName" && (tokenPhraseMatch(labelHint, "last name") || tokenPhraseMatch(labelHint, "family name") || tokenPhraseMatch(labelHint, "surname"))) return 0;
+    if (fieldKey === "lastName" && (tokenPhraseMatch(labelHint, "first name") || tokenPhraseMatch(labelHint, "given name") || tokenPhraseMatch(labelHint, "forename"))) return 0;
+    if (fieldKey === "firstName" && (autocomplete === "family name" || autocomplete === "family-name")) return 0;
+    if (fieldKey === "lastName" && (autocomplete === "given name" || autocomplete === "given-name")) return 0;
     let score = 0;
     for (const keyword of keywords) {
       for (const descriptor of descriptors) {

@@ -27,7 +27,7 @@
     coverLetter: ["cover letter", "coverletter", "additional information", "comments", "motivation", "why do you want", "message"],
     gender: ["gender", "sex"],
     eeo: ["eeo", "equal employment opportunity", "self identification"],
-    resumeText: ["resume", "cv", "summary", "about", "bio", "profile", "description", "experience description"],
+    resumeText: ["resume", "cv", "resume text", "cv text", "resume content", "cv content"],
     workAuthorization: ["work authorization", "authorized to work", "legally authorized", "right to work"],
     sponsorship: ["sponsorship", "require sponsorship", "visa sponsorship", "need sponsorship"],
     relocation: ["relocation", "willing to relocate", "relocate"],
@@ -340,8 +340,9 @@
     return true;
   }
 
-  async function fillCustomDropdown(el, value, record) {
+  async function fillCustomDropdown(el, value, record, fillOnlyEmpty = true) {
     if (!value) return false;
+    if (fillOnlyEmpty && !isEmpty(el)) return false;
     const before = el.textContent || el.getAttribute("aria-valuetext") || "";
     try {
       el.click();
@@ -440,8 +441,12 @@
   }
 
   async function autofillPage(options = {}) {
-    const fillOnlyEmpty = options.fillOnlyEmpty !== false;
     const profile = options.profile || await getActiveProfile();
+    let fillOnlyEmpty = options.fillOnlyEmpty;
+    if (fillOnlyEmpty == null) {
+      fillOnlyEmpty = await getFillOnlyEmptySetting();
+    }
+    fillOnlyEmpty = fillOnlyEmpty !== false;
     if (!profile) {
       showToast("No active profile found. Open JobFill Pro and create a profile.");
       return { filled: 0 };
@@ -496,7 +501,7 @@
       const fieldKey = Object.keys(FIELD_MAP).find(key => scoreField(combo, FIELD_MAP[key], key) >= 7);
       if (!fieldKey || !values[fieldKey] || combo.getAttribute("aria-disabled") === "true") continue;
       const record = { el: combo, fieldKey, confidence: 0.86, oldText: combo.textContent || "" };
-      if (await fillCustomDropdown(combo, values[fieldKey], record)) {
+      if (await fillCustomDropdown(combo, values[fieldKey], record, fillOnlyEmpty)) {
         FILLED.push({ ...record, label: getLabelText(combo) || fieldKey });
         filled++;
       }
@@ -504,18 +509,42 @@
 
     // Date inputs: use a stored ISO date answer only when the field itself is date-like.
     for (const input of inputs.filter(el => el.tagName.toLowerCase() === "input" && el.type === "date")) {
-      const key = ["availableStartDate", "noticePeriod"].find(k => values[k]);
+      const key = values.availableStartDate ? "availableStartDate" : "";
       if (!key || (fillOnlyEmpty && !isEmpty(input))) continue;
-      if (scoreField(input, FIELD_MAP.noticePeriod, "noticePeriod") >= 7 || tokenPhraseMatch(getLabelText(input), "start date")) {
+      if (scoreField(input, FIELD_MAP.noticePeriod, "noticePeriod") >= 7 || tokenPhraseMatch(getLabelText(input), "start date") || tokenPhraseMatch(getLabelText(input), "availability date")) {
         if (fillElement(input, values[key], key, 0.9)) filled++;
       }
     }
 
     // Resume file upload.
-    for (const input of allElements('input[type="file"]').filter(el => !isHiddenByAncestor(el))) {
-      const label = normalize(getLabelText(input));
-      if (tokenPhraseMatch(label, "resume") || tokenPhraseMatch(label, "cv") || input.accept?.toLowerCase().includes("pdf")) {
+    for (const input of allElements('input[type="file"]')) {
+      const descriptors = normalize(getFieldDescriptors(input).join(" "));
+      const resumeHint = tokenPhraseMatch(descriptors, "resume") || tokenPhraseMatch(descriptors, "cv") || tokenPhraseMatch(descriptors, "curriculum vitae");
+      const pdfOnly = (input.accept || "").toLowerCase().split(",").map(x => x.trim()).filter(Boolean).every(x => x === "application/pdf" || x === ".pdf");
+      const visibleContainer = !isHiddenByAncestor(input) || !!input.closest("label, [role="button"]");
+      if ((resumeHint || pdfOnly) && visibleContainer) {
         if (await storeAndAttachResume(input, profile)) filled++;
+      }
+    }
+
+    const unresolved = [];
+    for (const [fieldKey, keywords] of Object.entries(FIELD_MAP)) {
+      if (!values[fieldKey]) continue;
+      const candidates = findCandidates(inputs, fieldKey, keywords).filter(x => !used.has(x.el));
+      if (!candidates.length) unresolved.push({ fieldKey, question: getFieldQuestionText(fieldKey, inputs, keywords) });
+    }
+    if (unresolved.length && profile.allowAIAnswers !== false) {
+      const aiAnswers = await requestAiAnswers(unresolved, profile, job);
+      for (const item of aiAnswers) {
+        const value = String(item.answer || "").trim();
+        if (!value) continue;
+        const key = item.fieldKey || unresolved.find(x => x.question === item.question)?.fieldKey;
+        if (!key || !FIELD_MAP[key]) continue;
+        const candidate = findCandidates(inputs, key, FIELD_MAP[key]).find(x => !used.has(x.el) && (!fillOnlyEmpty || isEmpty(x.el)));
+        if (candidate && fillElement(candidate.el, value, key, 0.72)) {
+          used.add(candidate.el);
+          filled++;
+        }
       }
     }
 
@@ -536,6 +565,54 @@
     }
     observerArmed = true;
     return { filled, job };
+  }
+
+  async function getFillOnlyEmptySetting() {
+    return new Promise(resolve => {
+      try {
+        chrome.storage.local.get(["settings"], data => {
+          resolve((data?.settings || {}).fillOnlyEmpty !== false);
+        });
+      } catch (_) {
+        resolve(true);
+      }
+    });
+  }
+
+  function buildAiSafeContext(profile, job) {
+    return {
+      fullName: profile.fullName || "",
+      currentTitle: profile.currentTitle || "",
+      currentCompany: profile.currentCompany || "",
+      yearsExperience: profile.yearsExperience || "",
+      education: profile.education || "",
+      skills: profile.skills || "",
+      resumeText: profile.resumeText || "",
+      job: { role: job.role || "", company: job.company || "" }
+    };
+  }
+
+  async function requestAiAnswers(unresolved, profile, job) {
+    if (!unresolved.length) return [];
+    const safe = unresolved.map(x => ({ question: String(x.question || "").slice(0, 1000), fieldKey: x.fieldKey || "" }));
+    try {
+      const response = await new Promise(resolve => {
+        chrome.runtime.sendMessage({
+          action: "answerQuestionsWithAI",
+          questions: safe,
+          context: buildAiSafeContext(profile, job)
+        }, resolve);
+      });
+      return Array.isArray(response?.answers) ? response.answers : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function getFieldQuestionText(fieldKey, inputs, keywords) {
+    const candidate = findCandidates(inputs, fieldKey, keywords)[0]?.el;
+    if (candidate) return String(getLabelText(candidate) || candidate.name || candidate.id || fieldKey).trim().slice(0, 1000);
+    return fieldKey;
   }
 
   async function getActiveProfile() {
@@ -742,11 +819,28 @@
     document.addEventListener("click", maybeNext, true);
 
     let lastUrl = location.href;
-    setInterval(() => {
+    const scheduleForNavigation = () => {
       if (location.href === lastUrl) return;
       lastUrl = location.href;
       if (observerArmed) setTimeout(() => autofillPage().catch(()=>{}), 500);
-    }, 700);
+    };
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+    if (!window.__jobfillProHistoryPatched) {
+      history.pushState = function (...args) {
+        const result = originalPushState.apply(this, args);
+        window.dispatchEvent(new Event("jobpro:navigation"));
+        return result;
+      };
+      history.replaceState = function (...args) {
+        const result = originalReplaceState.apply(this, args);
+        window.dispatchEvent(new Event("jobpro:navigation"));
+        return result;
+      };
+      window.addEventListener("popstate", scheduleForNavigation);
+      window.addEventListener("jobpro:navigation", scheduleForNavigation);
+      window.__jobfillProHistoryPatched = true;
+    }
   }
 
   function init() {
